@@ -63,6 +63,9 @@ module.exports = {
     'eqeqeq': ['error', 'always'],
     'curly': ['error', 'all'],
     'no-throw-literal': 'error',
+
+    // Jest rules - allow conditional expects for Result type patterns
+    'jest/no-conditional-expect': 'off',
   },
   env: {
     node: true,

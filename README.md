@@ -1,6 +1,6 @@
 # Retell CLI
 
-[![Coverage](https://img.shields.io/badge/coverage-93.37%25-brightgreen)](https://github.com/anthropics/claude-code)
+[![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/suisuss-heya/a32f943eba9c91d240ffdc9c02c8872c/raw/retell-cli-coverage.json)](https://github.com/anthropics/claude-code)
 [![Tests](https://img.shields.io/badge/tests-216%20passed-brightgreen)](https://github.com/anthropics/claude-code)
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/anthropics/claude-code)
 
