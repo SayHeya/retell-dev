@@ -148,9 +148,7 @@ export class WorkspaceConfigLoader {
    * @param workspace - Workspace type (staging or production)
    * @returns Result containing workspace config or error
    */
-  static async getWorkspace(
-    workspace: WorkspaceType
-  ): Promise<Result<WorkspaceConfig, Error>> {
+  static async getWorkspace(workspace: WorkspaceType): Promise<Result<WorkspaceConfig, Error>> {
     const configResult = await this.load();
     if (!configResult.success) {
       return configResult;
@@ -230,11 +228,7 @@ export class WorkspaceConfigLoader {
       };
 
       const workspacesPath = path.resolve(process.cwd(), this.WORKSPACES_FILE);
-      await fs.writeFile(
-        workspacesPath,
-        JSON.stringify(workspacesConfig, null, 2) + '\n',
-        'utf-8'
-      );
+      await fs.writeFile(workspacesPath, JSON.stringify(workspacesConfig, null, 2) + '\n', 'utf-8');
 
       return Ok(undefined);
     } catch (error) {

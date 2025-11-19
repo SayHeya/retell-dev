@@ -30,10 +30,7 @@ describe('AgentConfigLoader', () => {
         },
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
 
@@ -68,10 +65,7 @@ describe('AgentConfigLoader', () => {
         },
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
 
@@ -91,10 +85,7 @@ describe('AgentConfigLoader', () => {
     });
 
     it('should return error for invalid JSON', async () => {
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        '{ invalid json }'
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), '{ invalid json }');
 
       const result = await AgentConfigLoader.load(agentDir);
 
@@ -109,10 +100,7 @@ describe('AgentConfigLoader', () => {
         // missing required fields
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(invalidConfig)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(invalidConfig));
 
       const result = await AgentConfigLoader.load(agentDir);
 
@@ -147,10 +135,7 @@ describe('AgentConfigLoader', () => {
         ],
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
 
@@ -305,10 +290,7 @@ describe('AgentConfigLoader', () => {
         },
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config));
 
       const result = await AgentConfigLoader.exists(agentDir);
 

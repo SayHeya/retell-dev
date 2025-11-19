@@ -49,9 +49,7 @@ export class RetellClient {
    * @param config - Agent configuration in Retell's format
    * @returns Result containing agent response or error
    */
-  async createAgent(
-    config: RetellAgentConfig
-  ): Promise<Result<AgentResponse, Error>> {
+  async createAgent(config: RetellAgentConfig): Promise<Result<AgentResponse, Error>> {
     try {
       const response = await this.client.agent.create(config as never);
 
@@ -60,11 +58,7 @@ export class RetellClient {
         last_modification_timestamp: response.last_modification_timestamp,
       });
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to create agent in Retell')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to create agent in Retell'));
     }
   }
 
@@ -88,9 +82,7 @@ export class RetellClient {
       });
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to update agent ${agentId} in Retell`)
+        error instanceof Error ? error : new Error(`Failed to update agent ${agentId} in Retell`)
       );
     }
   }
@@ -107,9 +99,7 @@ export class RetellClient {
       return Ok(response);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to get agent ${agentId} from Retell`)
+        error instanceof Error ? error : new Error(`Failed to get agent ${agentId} from Retell`)
       );
     }
   }
@@ -126,9 +116,7 @@ export class RetellClient {
       return Ok(undefined);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to delete agent ${agentId} from Retell`)
+        error instanceof Error ? error : new Error(`Failed to delete agent ${agentId} from Retell`)
       );
     }
   }
@@ -148,11 +136,7 @@ export class RetellClient {
         last_modification_timestamp: response.last_modification_timestamp,
       });
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to create LLM in Retell')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to create LLM in Retell'));
     }
   }
 
@@ -163,10 +147,7 @@ export class RetellClient {
    * @param config - LLM configuration
    * @returns Result containing LLM response or error
    */
-  async updateLlm(
-    llmId: LlmId,
-    config: unknown
-  ): Promise<Result<LlmResponse, Error>> {
+  async updateLlm(llmId: LlmId, config: unknown): Promise<Result<LlmResponse, Error>> {
     try {
       const response = await this.client.llm.update(llmId, config as never);
 
@@ -176,9 +157,7 @@ export class RetellClient {
       });
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to update LLM ${llmId} in Retell`)
+        error instanceof Error ? error : new Error(`Failed to update LLM ${llmId} in Retell`)
       );
     }
   }
@@ -195,9 +174,7 @@ export class RetellClient {
       return Ok(response);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to get LLM ${llmId} from Retell`)
+        error instanceof Error ? error : new Error(`Failed to get LLM ${llmId} from Retell`)
       );
     }
   }
@@ -208,9 +185,7 @@ export class RetellClient {
    * @param name - Knowledge base name
    * @returns Result containing KB response or error
    */
-  async createKnowledgeBase(
-    name: string
-  ): Promise<Result<KnowledgeBaseResponse, Error>> {
+  async createKnowledgeBase(name: string): Promise<Result<KnowledgeBaseResponse, Error>> {
     try {
       const response = await this.client.knowledgeBase.create({
         knowledge_base_name: name,
@@ -221,9 +196,7 @@ export class RetellClient {
       });
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to create knowledge base in Retell')
+        error instanceof Error ? error : new Error('Failed to create knowledge base in Retell')
       );
     }
   }
@@ -248,11 +221,7 @@ export class RetellClient {
         knowledge_base_id: response.knowledge_base_id,
       });
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error(`Failed to upload file to KB ${kbId}`)
-      );
+      return Err(error instanceof Error ? error : new Error(`Failed to upload file to KB ${kbId}`));
     }
   }
 
@@ -266,11 +235,7 @@ export class RetellClient {
       const response = await this.client.agent.list();
       return Ok(response as unknown[]);
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to list agents from Retell')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to list agents from Retell'));
     }
   }
 
@@ -297,9 +262,7 @@ export class RetellClient {
       return Ok(response);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to create phone number in Retell')
+        error instanceof Error ? error : new Error('Failed to create phone number in Retell')
       );
     }
   }
@@ -316,9 +279,7 @@ export class RetellClient {
       return Ok(response);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to import phone number in Retell')
+        error instanceof Error ? error : new Error('Failed to import phone number in Retell')
       );
     }
   }
@@ -334,9 +295,7 @@ export class RetellClient {
       return Ok(response as unknown[]);
     } catch (error) {
       return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to list phone numbers from Retell')
+        error instanceof Error ? error : new Error('Failed to list phone numbers from Retell')
       );
     }
   }

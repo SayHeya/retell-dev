@@ -7,9 +7,13 @@ describe('Common Types', () => {
       const result = Ok('success value');
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.value).toBe('success value');
+
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      expect(result.value).toBe('success value');
     });
   });
 
@@ -19,9 +23,13 @@ describe('Common Types', () => {
       const result = Err(error);
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error).toBe(error);
+
+      // Assert result is failure before accessing error
+      if (result.success) {
+        throw new Error('Expected result to be failure');
       }
+
+      expect(result.error).toBe(error);
     });
   });
 

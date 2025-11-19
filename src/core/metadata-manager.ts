@@ -45,17 +45,13 @@ export class MetadataManager {
     } catch (error) {
       if (error instanceof ZodError) {
         return Err(
-          new Error(
-            `Invalid metadata schema: ${error.errors.map((e) => e.message).join(', ')}`
-          )
+          new Error(`Invalid metadata schema: ${error.errors.map((e) => e.message).join(', ')}`)
         );
       }
       if (error instanceof SyntaxError) {
         return Err(new Error(`Invalid JSON in metadata file: ${error.message}`));
       }
-      return Err(
-        error instanceof Error ? error : new Error('Failed to read metadata')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to read metadata'));
     }
   }
 
@@ -67,10 +63,7 @@ export class MetadataManager {
    * @param metadata - Metadata to write
    * @returns Result indicating success or error
    */
-  static async write(
-    agentDir: string,
-    metadata: MetadataFile
-  ): Promise<Result<void, Error>> {
+  static async write(agentDir: string, metadata: MetadataFile): Promise<Result<void, Error>> {
     try {
       // Ensure agent directory exists
       await fs.mkdir(agentDir, { recursive: true });
@@ -83,9 +76,7 @@ export class MetadataManager {
 
       return Ok(undefined);
     } catch (error) {
-      return Err(
-        error instanceof Error ? error : new Error('Failed to write metadata')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to write metadata'));
     }
   }
 
@@ -124,9 +115,7 @@ export class MetadataManager {
       // Write merged metadata
       return await this.write(agentDir, updated);
     } catch (error) {
-      return Err(
-        error instanceof Error ? error : new Error('Failed to update metadata')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to update metadata'));
     }
   }
 
@@ -137,10 +126,7 @@ export class MetadataManager {
    * @param workspace - Workspace type
    * @returns true if file exists, false otherwise
    */
-  static async exists(
-    agentDir: string,
-    workspace: WorkspaceType
-  ): Promise<boolean> {
+  static async exists(agentDir: string, workspace: WorkspaceType): Promise<boolean> {
     const filePath = this.getFilePath(agentDir, workspace);
     return await this.fileExists(filePath);
   }

@@ -42,10 +42,7 @@ describe('List Command Dependencies', () => {
           general_prompt: 'Agent 1 prompt',
         },
       };
-      await fs.writeFile(
-        path.join(agent1Dir, 'agent.json'),
-        JSON.stringify(config1, null, 2)
-      );
+      await fs.writeFile(path.join(agent1Dir, 'agent.json'), JSON.stringify(config1, null, 2));
 
       // Create agent 2
       const agent2Dir = path.join(agentsDir, 'agent-2');
@@ -59,10 +56,7 @@ describe('List Command Dependencies', () => {
           general_prompt: 'Agent 2 prompt',
         },
       };
-      await fs.writeFile(
-        path.join(agent2Dir, 'agent.json'),
-        JSON.stringify(config2, null, 2)
-      );
+      await fs.writeFile(path.join(agent2Dir, 'agent.json'), JSON.stringify(config2, null, 2));
 
       // Load both agents
       const result1 = await AgentConfigLoader.load(agent1Dir);
@@ -71,12 +65,15 @@ describe('List Command Dependencies', () => {
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
 
-      if (result1.success && result2.success) {
-        expect(result1.value.agent_name).toBe('Agent One');
-        expect(result2.value.agent_name).toBe('Agent Two');
-        expect(result1.value.llm_config.model).toBe('gpt-4o-mini');
-        expect(result2.value.llm_config.model).toBe('gpt-4o');
+      // Assert results are successful before accessing values
+      if (!result1.success || !result2.success) {
+        throw new Error('Expected both results to be successful');
       }
+
+      expect(result1.value.agent_name).toBe('Agent One');
+      expect(result2.value.agent_name).toBe('Agent Two');
+      expect(result1.value.llm_config.model).toBe('gpt-4o-mini');
+      expect(result2.value.llm_config.model).toBe('gpt-4o');
     });
 
     it('should handle mix of valid and invalid agents', async () => {
@@ -92,10 +89,7 @@ describe('List Command Dependencies', () => {
           general_prompt: 'Valid prompt',
         },
       };
-      await fs.writeFile(
-        path.join(validDir, 'agent.json'),
-        JSON.stringify(validConfig, null, 2)
-      );
+      await fs.writeFile(path.join(validDir, 'agent.json'), JSON.stringify(validConfig, null, 2));
 
       // Create invalid agent (missing required fields)
       const invalidDir = path.join(agentsDir, 'invalid-agent');
@@ -137,13 +131,12 @@ describe('List Command Dependencies', () => {
         },
       } as AgentConfig;
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(agentConfig, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(agentConfig, null, 2));
 
       const hashResult = HashCalculator.calculateAgentHash(agentConfig);
-      if (!hashResult.success) throw new Error('Failed to calculate hash');
+      if (!hashResult.success) {
+        throw new Error('Failed to calculate hash');
+      }
       configHash = hashResult.value;
     });
 
@@ -162,13 +155,16 @@ describe('List Command Dependencies', () => {
       const readResult = await MetadataManager.read(agentDir, 'staging');
       expect(readResult.success).toBe(true);
 
-      if (readResult.success) {
-        const inSync = HashCalculator.compareHashes(
-          configHash as never,
-          readResult.value.config_hash as never
-        );
-        expect(inSync).toBe(true);
+      // Assert result is successful before accessing value
+      if (!readResult.success) {
+        throw new Error('Expected readResult to be successful');
       }
+
+      const inSync = HashCalculator.compareHashes(
+        configHash as never,
+        readResult.value.config_hash as never
+      );
+      expect(inSync).toBe(true);
     });
 
     it('should detect out-of-sync status when hashes differ', async () => {
@@ -187,13 +183,16 @@ describe('List Command Dependencies', () => {
       const readResult = await MetadataManager.read(agentDir, 'staging');
       expect(readResult.success).toBe(true);
 
-      if (readResult.success) {
-        const inSync = HashCalculator.compareHashes(
-          configHash as never,
-          readResult.value.config_hash as never
-        );
-        expect(inSync).toBe(false);
+      // Assert result is successful before accessing value
+      if (!readResult.success) {
+        throw new Error('Expected readResult to be successful');
       }
+
+      const inSync = HashCalculator.compareHashes(
+        configHash as never,
+        readResult.value.config_hash as never
+      );
+      expect(inSync).toBe(false);
     });
 
     it('should detect never-synced status when metadata does not exist', async () => {
@@ -201,9 +200,13 @@ describe('List Command Dependencies', () => {
       const readResult = await MetadataManager.read(agentDir, 'staging');
       // MetadataManager returns success: true with null values when file doesn't exist
       expect(readResult.success).toBe(true);
-      if (readResult.success) {
-        expect(readResult.value.config_hash).toBeNull();
+
+      // Assert result is successful before accessing value
+      if (!readResult.success) {
+        throw new Error('Expected readResult to be successful');
       }
+
+      expect(readResult.value.config_hash).toBeNull();
     });
 
     it('should track sync status independently for staging and production', async () => {
@@ -230,24 +233,32 @@ describe('List Command Dependencies', () => {
       // Check staging - should be in sync
       const stagingResult = await MetadataManager.read(agentDir, 'staging');
       expect(stagingResult.success).toBe(true);
-      if (stagingResult.success) {
-        const stagingInSync = HashCalculator.compareHashes(
-          configHash as never,
-          stagingResult.value.config_hash as never
-        );
-        expect(stagingInSync).toBe(true);
+
+      // Assert staging result is successful before accessing value
+      if (!stagingResult.success) {
+        throw new Error('Expected stagingResult to be successful');
       }
+
+      const stagingInSync = HashCalculator.compareHashes(
+        configHash as never,
+        stagingResult.value.config_hash as never
+      );
+      expect(stagingInSync).toBe(true);
 
       // Check production - should be out of sync
       const prodResult = await MetadataManager.read(agentDir, 'production');
       expect(prodResult.success).toBe(true);
-      if (prodResult.success) {
-        const prodInSync = HashCalculator.compareHashes(
-          configHash as never,
-          prodResult.value.config_hash as never
-        );
-        expect(prodInSync).toBe(false);
+
+      // Assert production result is successful before accessing value
+      if (!prodResult.success) {
+        throw new Error('Expected prodResult to be successful');
       }
+
+      const prodInSync = HashCalculator.compareHashes(
+        configHash as never,
+        prodResult.value.config_hash as never
+      );
+      expect(prodInSync).toBe(false);
     });
   });
 
@@ -267,21 +278,21 @@ describe('List Command Dependencies', () => {
         },
       } as AgentConfig;
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        // Verify all fields needed for list display
-        expect(result.value.agent_name).toBe('Display Test Agent');
-        expect(result.value.voice_id).toBe('11labs-Bella');
-        expect(result.value.language).toBe('es-ES');
-        expect(result.value.llm_config.model).toBe('claude-3.5-sonnet');
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      // Verify all fields needed for list display
+      expect(result.value.agent_name).toBe('Display Test Agent');
+      expect(result.value.voice_id).toBe('11labs-Bella');
+      expect(result.value.language).toBe('es-ES');
+      expect(result.value.llm_config.model).toBe('claude-3.5-sonnet');
     });
 
     it('should handle optional fields gracefully', async () => {
@@ -299,24 +310,24 @@ describe('List Command Dependencies', () => {
         },
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(config, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(config, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        expect(result.value.agent_name).toBe('Minimal Agent');
-        expect(result.value.voice_id).toBe('11labs-Adrian');
-        expect(result.value.language).toBe('en-US');
-        expect(result.value.llm_config.model).toBe('gpt-4o-mini');
-
-        // Optional fields should be undefined
-        expect(result.value.voice_speed).toBeUndefined();
-        expect(result.value.responsiveness).toBeUndefined();
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      expect(result.value.agent_name).toBe('Minimal Agent');
+      expect(result.value.voice_id).toBe('11labs-Adrian');
+      expect(result.value.language).toBe('en-US');
+      expect(result.value.llm_config.model).toBe('gpt-4o-mini');
+
+      // Optional fields should be undefined
+      expect(result.value.voice_speed).toBeUndefined();
+      expect(result.value.responsiveness).toBeUndefined();
     });
   });
 

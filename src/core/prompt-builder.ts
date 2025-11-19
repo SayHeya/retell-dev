@@ -22,10 +22,7 @@ export class PromptBuilder {
    * @param config - Prompt configuration with sections and variables
    * @returns Result containing built prompt string or error
    */
-  static async build(
-    promptsDir: string,
-    config: PromptConfig
-  ): Promise<Result<string, Error>> {
+  static async build(promptsDir: string, config: PromptConfig): Promise<Result<string, Error>> {
     try {
       const sections = config.sections ?? [];
       const overrides = config.overrides ?? {};
@@ -47,9 +44,7 @@ export class PromptBuilder {
           const fileExists = await this.fileExists(sectionPath);
 
           if (!fileExists) {
-            return Err(
-              new Error(`Prompt section not found: ${sectionId} at ${sectionPath}`)
-            );
+            return Err(new Error(`Prompt section not found: ${sectionId} at ${sectionPath}`));
           }
 
           content = await fs.readFile(sectionPath, 'utf-8');
@@ -66,9 +61,7 @@ export class PromptBuilder {
 
       return Ok(prompt);
     } catch (error) {
-      return Err(
-        error instanceof Error ? error : new Error('Failed to build prompt')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to build prompt'));
     }
   }
 

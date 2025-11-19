@@ -19,9 +19,7 @@ describe('HashCalculator', () => {
       const result = HashCalculator.calculateAgentHash(config);
 
       expect(result.success).toBe(true);
-      expect((result as { success: true; value: Hash }).value).toMatch(
-        /^sha256:[a-f0-9]{64}$/
-      );
+      expect((result as { success: true; value: Hash }).value).toMatch(/^sha256:[a-f0-9]{64}$/);
     });
 
     it('should produce same hash for identical configs', () => {
@@ -119,9 +117,7 @@ describe('HashCalculator', () => {
       const result = HashCalculator.calculateAgentHash(config);
 
       expect(result.success).toBe(true);
-      expect((result as { success: true; value: Hash }).value).toMatch(
-        /^sha256:[a-f0-9]{64}$/
-      );
+      expect((result as { success: true; value: Hash }).value).toMatch(/^sha256:[a-f0-9]{64}$/);
     });
 
     it('should be sensitive to field order (canonical JSON)', () => {
@@ -198,9 +194,7 @@ describe('HashCalculator', () => {
       const result = HashCalculator.calculateFileHash(content);
 
       expect(result.success).toBe(true);
-      expect((result as { success: true; value: Hash }).value).toMatch(
-        /^sha256:[a-f0-9]{64}$/
-      );
+      expect((result as { success: true; value: Hash }).value).toMatch(/^sha256:[a-f0-9]{64}$/);
     });
 
     it('should produce same hash for same content', () => {
@@ -236,9 +230,7 @@ describe('HashCalculator', () => {
       const result = HashCalculator.calculateFileHash(content);
 
       expect(result.success).toBe(true);
-      expect((result as { success: true; value: Hash }).value).toMatch(
-        /^sha256:[a-f0-9]{64}$/
-      );
+      expect((result as { success: true; value: Hash }).value).toMatch(/^sha256:[a-f0-9]{64}$/);
     });
 
     it('should handle unicode content', () => {
@@ -247,9 +239,7 @@ describe('HashCalculator', () => {
       const result = HashCalculator.calculateFileHash(content);
 
       expect(result.success).toBe(true);
-      expect((result as { success: true; value: Hash }).value).toMatch(
-        /^sha256:[a-f0-9]{64}$/
-      );
+      expect((result as { success: true; value: Hash }).value).toMatch(/^sha256:[a-f0-9]{64}$/);
     });
   });
 });

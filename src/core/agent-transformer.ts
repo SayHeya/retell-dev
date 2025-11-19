@@ -91,19 +91,13 @@ export class AgentTransformer {
         // Validate all variables are accounted for
         const validation = VariableResolver.validate(generalPrompt, promptConfig);
         if (!validation.success) {
-          return Err(
-            new Error(
-              `Variable validation failed: ${validation.errors.join(', ')}`
-            )
-          );
+          return Err(new Error(`Variable validation failed: ${validation.errors.join(', ')}`));
         }
       } else if (config.llm_config.general_prompt !== undefined) {
         generalPrompt = config.llm_config.general_prompt;
       } else {
         return Err(
-          new Error(
-            'Either prompt_config or general_prompt must be defined in llm_config'
-          )
+          new Error('Either prompt_config or general_prompt must be defined in llm_config')
         );
       }
 
@@ -119,11 +113,7 @@ export class AgentTransformer {
 
       return Ok(retellLlmConfig);
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to transform to LLM config')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to transform to LLM config'));
     }
   }
 
@@ -135,10 +125,7 @@ export class AgentTransformer {
    * @param llmId - LLM ID from Retell
    * @returns Result containing Retell agent config or error
    */
-  static transformToAgent(
-    config: AgentConfig,
-    llmId: LlmId
-  ): Result<RetellAgentConfig, Error> {
+  static transformToAgent(config: AgentConfig, llmId: LlmId): Result<RetellAgentConfig, Error> {
     try {
       // Build Retell agent config
       const retellAgentConfig: RetellAgentConfig = {
@@ -165,18 +152,12 @@ export class AgentTransformer {
         },
 
         // Post-call analysis
-        post_call_analysis_data: this.transformPostCallAnalysis(
-          config.post_call_analysis_data
-        ),
+        post_call_analysis_data: this.transformPostCallAnalysis(config.post_call_analysis_data),
       };
 
       return Ok(retellAgentConfig);
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to transform to agent config')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to transform to agent config'));
     }
   }
 

@@ -14,7 +14,10 @@ import { AgentConfigSchema } from '../../schemas/agent.schema';
 export const updateCommand = new Command('update')
   .description('Update agent configuration fields')
   .argument('<agent-name>', 'Name of the agent to update')
-  .argument('<field>', 'Field to update (supports dot notation for nested fields, e.g., llm_config.temperature)')
+  .argument(
+    '<field>',
+    'Field to update (supports dot notation for nested fields, e.g., llm_config.temperature)'
+  )
   .argument('<value>', 'New value for the field')
   .option('-p, --path <path>', 'Path to agents directory', './agents')
   .option('--type <type>', 'Type of value (string|number|boolean|json|array)', 'auto')
@@ -39,8 +42,12 @@ function parseValue(value: string, type: UpdateOptions['type']): unknown {
   // Auto-detect type if not specified
   if (type === 'auto') {
     // Try boolean
-    if (value === 'true') return true;
-    if (value === 'false') return false;
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
 
     // Try number
     if (!isNaN(Number(value)) && value.trim() !== '') {
@@ -48,8 +55,10 @@ function parseValue(value: string, type: UpdateOptions['type']): unknown {
     }
 
     // Try JSON
-    if ((value.startsWith('{') && value.endsWith('}')) ||
-        (value.startsWith('[') && value.endsWith(']'))) {
+    if (
+      (value.startsWith('{') && value.endsWith('}')) ||
+      (value.startsWith('[') && value.endsWith(']'))
+    ) {
       try {
         return JSON.parse(value);
       } catch {
@@ -65,15 +74,20 @@ function parseValue(value: string, type: UpdateOptions['type']): unknown {
   switch (type) {
     case 'string':
       return value;
-    case 'number':
+    case 'number': {
       const num = Number(value);
       if (isNaN(num)) {
         throw new Error(`Invalid number: ${value}`);
       }
       return num;
+    }
     case 'boolean':
-      if (value === 'true') return true;
-      if (value === 'false') return false;
+      if (value === 'true') {
+        return true;
+      }
+      if (value === 'false') {
+        return false;
+      }
       throw new Error(`Invalid boolean: ${value}. Use 'true' or 'false'`);
     case 'json':
     case 'array':
@@ -97,7 +111,9 @@ function setNestedField(obj: Record<string, unknown>, path: string, value: unkno
   // Navigate to the parent of the target field
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    if (part === undefined) continue;
+    if (part === undefined) {
+      continue;
+    }
 
     if (!(part in current)) {
       current[part] = {};
@@ -105,7 +121,9 @@ function setNestedField(obj: Record<string, unknown>, path: string, value: unkno
 
     const next = current[part];
     if (typeof next !== 'object' || next === null || Array.isArray(next)) {
-      throw new Error(`Cannot set field '${path}': '${parts.slice(0, i + 1).join('.')}' is not an object`);
+      throw new Error(
+        `Cannot set field '${path}': '${parts.slice(0, i + 1).join('.')}' is not an object`
+      );
     }
     current = next as Record<string, unknown>;
   }
@@ -170,20 +188,16 @@ async function executeUpdate(
   console.log('\nValidating updated configuration...');
   const validationResult = AgentConfigSchema.safeParse(currentConfig);
   if (!validationResult.success) {
-    const errors = validationResult.error.errors.map(e =>
-      `  - ${e.path.join('.')}: ${e.message}`
-    ).join('\n');
+    const errors = validationResult.error.errors
+      .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
+      .join('\n');
     throw new Error(`Validation failed:\n${errors}`);
   }
   console.log('✓ Configuration is valid');
 
   // 6. Write updated config back to file
   console.log('\nSaving updated configuration...');
-  await fs.writeFile(
-    agentJsonPath,
-    JSON.stringify(currentConfig, null, 2) + '\n',
-    'utf-8'
-  );
+  await fs.writeFile(agentJsonPath, JSON.stringify(currentConfig, null, 2) + '\n', 'utf-8');
 
   console.log(`\n✓ Successfully updated '${field}' in agent '${agentName}'`);
   console.log(`  Old value: ${JSON.stringify(oldValue)}`);

@@ -45,10 +45,7 @@ describe('PromptBuilder', () => {
     it('should build prompt from multiple sections', async () => {
       // Create prompt sections
       await fs.mkdir(path.join(promptsDir, 'base'), { recursive: true });
-      await fs.writeFile(
-        path.join(promptsDir, 'base/greeting.txt'),
-        'Hello! I am {{agent_name}}.'
-      );
+      await fs.writeFile(path.join(promptsDir, 'base/greeting.txt'), 'Hello! I am {{agent_name}}.');
       await fs.writeFile(
         path.join(promptsDir, 'base/closing.txt'),
         'Thank you for contacting {{company_name}}!'
@@ -121,9 +118,7 @@ describe('PromptBuilder', () => {
 
       expect(result.success).toBe(true);
       const prompt = (result as { success: true; value: string }).value;
-      expect(prompt).toBe(
-        'I can help you with order {{order_id}} for {{customer_name}}.'
-      );
+      expect(prompt).toBe('I can help you with order {{order_id}} for {{customer_name}}.');
     });
 
     it('should keep system variables as template tags', async () => {
@@ -142,9 +137,7 @@ describe('PromptBuilder', () => {
 
       expect(result.success).toBe(true);
       const prompt = (result as { success: true; value: string }).value;
-      expect(prompt).toBe(
-        'The current time is {{current_time_Australia/Sydney}}.'
-      );
+      expect(prompt).toBe('The current time is {{current_time_Australia/Sydney}}.');
     });
 
     it('should apply overrides to sections', async () => {
@@ -245,10 +238,7 @@ describe('PromptBuilder', () => {
     });
 
     it('should load from fixture prompts directory', async () => {
-      const fixturePromptsDir = path.join(
-        process.cwd(),
-        'tests/fixtures/complete-project/prompts'
-      );
+      const fixturePromptsDir = path.join(process.cwd(), 'tests/fixtures/complete-project/prompts');
 
       const config: PromptConfig = {
         sections: ['base/greeting', 'base/closing'],
@@ -267,8 +257,7 @@ describe('PromptBuilder', () => {
 
   describe('extractVariables', () => {
     it('should extract all {{variable}} references from text', () => {
-      const text =
-        'Hello {{user_name}}, welcome to {{company_name}}. Your ID is {{user_id}}.';
+      const text = 'Hello {{user_name}}, welcome to {{company_name}}. Your ID is {{user_id}}.';
 
       const variables = PromptBuilder.extractVariables(text);
 
@@ -281,15 +270,11 @@ describe('PromptBuilder', () => {
 
       const variables = PromptBuilder.extractVariables(text);
 
-      expect(variables).toEqual([
-        'current_time_Australia/Sydney',
-        'current_date_UTC',
-      ]);
+      expect(variables).toEqual(['current_time_Australia/Sydney', 'current_date_UTC']);
     });
 
     it('should return unique variables only', () => {
-      const text =
-        'Hello {{user_name}}, {{user_name}} is logged in to {{company_name}}.';
+      const text = 'Hello {{user_name}}, {{user_name}} is logged in to {{company_name}}.';
 
       const variables = PromptBuilder.extractVariables(text);
 

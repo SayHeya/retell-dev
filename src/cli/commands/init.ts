@@ -8,9 +8,10 @@ import * as path from 'path';
 import type { AgentConfig } from '../../types/agent.types';
 
 // Dynamic import for inquirer (ESM module)
-let inquirer: any;
-async function getInquirer() {
-  if (!inquirer) {
+type InquirerModule = Awaited<typeof import('inquirer')>['default'];
+let inquirer: InquirerModule | null = null;
+async function getInquirer(): Promise<InquirerModule> {
+  if (inquirer === null) {
     inquirer = (await import('inquirer')).default;
   }
   return inquirer;
@@ -39,10 +40,7 @@ type InitOptions = {
   skipPrompts: boolean;
 };
 
-async function executeInit(
-  agentName: string | undefined,
-  options: InitOptions
-): Promise<void> {
+async function executeInit(agentName: string | undefined, options: InitOptions): Promise<void> {
   console.log('\n✨ Creating new Retell agent\n');
 
   // 1. Get agent name
@@ -55,7 +53,9 @@ async function executeInit(
         name: 'name',
         message: 'Agent directory name (lowercase, hyphens):',
         validate: (input: string) => {
-          if (!input) return 'Agent name is required';
+          if (!input) {
+            return 'Agent name is required';
+          }
           if (!/^[a-z0-9-]+$/.test(input)) {
             return 'Agent name must be lowercase letters, numbers, and hyphens only';
           }
@@ -143,11 +143,7 @@ async function executeInit(
 
   // 8. Write agent.json
   const agentJsonPath = path.join(agentPath, 'agent.json');
-  await fs.writeFile(
-    agentJsonPath,
-    JSON.stringify(customizedConfig, null, 2) + '\n',
-    'utf-8'
-  );
+  await fs.writeFile(agentJsonPath, JSON.stringify(customizedConfig, null, 2) + '\n', 'utf-8');
 
   // 9. Create knowledge directory (optional)
   const knowledgePath = path.join(agentPath, 'knowledge');
@@ -223,7 +219,9 @@ async function customizeTemplate(template: AgentConfig): Promise<AgentConfig> {
       message: 'Temperature (0.0-1.0, higher = more creative):',
       default: template.llm_config.temperature ?? 0.7,
       validate: (input: number) => {
-        if (input < 0 || input > 1) return 'Temperature must be between 0 and 1';
+        if (input < 0 || input > 1) {
+          return 'Temperature must be between 0 and 1';
+        }
         return true;
       },
     },
@@ -244,9 +242,7 @@ async function customizeTemplate(template: AgentConfig): Promise<AgentConfig> {
 
   // Customize variables if using prompt_config
   if (customized.llm_config.prompt_config?.variables) {
-    const variableAnswers = await customizeVariables(
-      customized.llm_config.prompt_config.variables
-    );
+    const variableAnswers = await customizeVariables(customized.llm_config.prompt_config.variables);
 
     // Create new config with updated variables
     const finalConfig: AgentConfig = {

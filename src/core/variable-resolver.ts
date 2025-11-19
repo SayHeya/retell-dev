@@ -1,4 +1,10 @@
-import type { PromptConfig, StaticVariable, OverrideVariable, DynamicVariable, SystemVariable } from '../types/agent.types';
+import type {
+  PromptConfig,
+  StaticVariable,
+  OverrideVariable,
+  DynamicVariable,
+  SystemVariable,
+} from '../types/agent.types';
 import { PromptBuilder } from './prompt-builder';
 
 /**
@@ -47,10 +53,7 @@ export class VariableResolver {
    * @param config - Prompt configuration
    * @returns Categorized variables
    */
-  static categorize(
-    promptText: string,
-    config: PromptConfig
-  ): CategorizedVariables {
+  static categorize(promptText: string, config: PromptConfig): CategorizedVariables {
     const variables = config.variables ?? {};
     const dynamicVariables = config.dynamic_variables ?? {};
 
@@ -133,10 +136,7 @@ export class VariableResolver {
    * @param config - Prompt configuration
    * @returns Validation result with errors if any
    */
-  static validate(
-    promptText: string,
-    config: PromptConfig
-  ): ValidationResult {
+  static validate(promptText: string, config: PromptConfig): ValidationResult {
     const errors: string[] = [];
     const unaccounted = this.getUnaccountedVariables(promptText, config);
 
@@ -160,10 +160,7 @@ export class VariableResolver {
    * @param config - Prompt configuration
    * @returns Array of unaccounted variable names
    */
-  static getUnaccountedVariables(
-    promptText: string,
-    config: PromptConfig
-  ): string[] {
+  static getUnaccountedVariables(promptText: string, config: PromptConfig): string[] {
     const variables = config.variables ?? {};
     const dynamicVariables = config.dynamic_variables ?? {};
 

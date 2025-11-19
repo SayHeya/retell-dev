@@ -128,9 +128,7 @@ async function loadLocalAgentInfo(
     // Load agent config
     const configResult = await AgentConfigLoader.load(agentPath);
     if (!configResult.success) {
-      console.warn(
-        `⚠ Skipping ${agentName}: ${configResult.error.message}`
-      );
+      console.warn(`⚠ Skipping ${agentName}: ${configResult.error.message}`);
       return null;
     }
     const config = configResult.value;
@@ -185,10 +183,7 @@ async function checkSyncStatus(
     return 'never-synced';
   }
 
-  const inSync = HashCalculator.compareHashes(
-    currentHash as never,
-    metadata.config_hash as never
-  );
+  const inSync = HashCalculator.compareHashes(currentHash as never, metadata.config_hash as never);
 
   return inSync ? 'in-sync' : 'out-of-sync';
 }

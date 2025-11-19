@@ -113,9 +113,7 @@ describe('Init Command - Template System', () => {
       expect(loaded.llm_config.prompt_config).toBeDefined();
       expect(loaded.llm_config.prompt_config?.sections).toHaveLength(2);
       expect(loaded.llm_config.prompt_config?.variables).toHaveProperty('company_name');
-      expect(loaded.llm_config.prompt_config?.dynamic_variables).toHaveProperty(
-        'customer_name'
-      );
+      expect(loaded.llm_config.prompt_config?.dynamic_variables).toHaveProperty('customer_name');
     });
   });
 
@@ -150,10 +148,7 @@ describe('Init Command - Template System', () => {
       await fs.mkdir(agentDir, { recursive: true });
 
       // Write agent.json
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(template, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(template, null, 2));
 
       // Create knowledge directory
       const knowledgeDir = path.join(agentDir, 'knowledge');
@@ -183,35 +178,37 @@ describe('Init Command - Template System', () => {
           ...template.llm_config,
           model: 'gpt-4o',
           temperature: 0.9,
-          prompt_config: {
-            ...template.llm_config.prompt_config!,
-            variables: {
-              company_name: 'My Company',
-            },
-          },
+          prompt_config:
+            template.llm_config.prompt_config !== null &&
+            template.llm_config.prompt_config !== undefined
+              ? {
+                  ...template.llm_config.prompt_config,
+                  variables: {
+                    company_name: 'My Company',
+                  },
+                }
+              : undefined,
         },
       };
 
       const agentDir = path.join(agentsDir, 'customized-agent');
       await fs.mkdir(agentDir, { recursive: true });
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(customized, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(customized, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        expect(result.value.agent_name).toBe('My Custom Agent');
-        expect(result.value.voice_id).toBe('11labs-Alice');
-        expect(result.value.language).toBe('en-GB');
-        expect(result.value.llm_config.model).toBe('gpt-4o');
-        expect(result.value.llm_config.temperature).toBe(0.9);
-        expect(result.value.llm_config.prompt_config?.variables?.['company_name']).toBe(
-          'My Company'
-        );
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      expect(result.value.agent_name).toBe('My Custom Agent');
+      expect(result.value.voice_id).toBe('11labs-Alice');
+      expect(result.value.language).toBe('en-GB');
+      expect(result.value.llm_config.model).toBe('gpt-4o');
+      expect(result.value.llm_config.temperature).toBe(0.9);
+      expect(result.value.llm_config.prompt_config?.variables?.['company_name']).toBe('My Company');
     });
 
     it('should preserve template structure when creating agent', async () => {
@@ -224,23 +221,23 @@ describe('Init Command - Template System', () => {
         agent_name: 'New Agent Name', // Only change name
       };
 
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(agentConfig, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(agentConfig, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        // Verify structure is preserved
-        expect(result.value.llm_config.prompt_config?.sections).toEqual(
-          template.llm_config.prompt_config?.sections
-        );
-        expect(result.value.llm_config.prompt_config?.variables).toEqual(
-          template.llm_config.prompt_config?.variables
-        );
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      // Verify structure is preserved
+      expect(result.value.llm_config.prompt_config?.sections).toEqual(
+        template.llm_config.prompt_config?.sections
+      );
+      expect(result.value.llm_config.prompt_config?.variables).toEqual(
+        template.llm_config.prompt_config?.variables
+      );
     });
   });
 
@@ -258,10 +255,7 @@ describe('Init Command - Template System', () => {
 
       const agentDir = path.join(agentsDir, 'valid');
       await fs.mkdir(agentDir, { recursive: true });
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(validTemplate, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(validTemplate, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
@@ -316,22 +310,19 @@ describe('Init Command - Template System', () => {
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        expect(result.value.llm_config.tools).toBeDefined();
-        expect(result.value.llm_config.tools).toHaveLength(1);
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      expect(result.value.llm_config.tools).toBeDefined();
+      expect(result.value.llm_config.tools).toHaveLength(1);
     });
   });
 
   describe('Agent name validation', () => {
     it('should accept valid agent names', () => {
-      const validNames = [
-        'my-agent',
-        'agent-123',
-        'customer-service',
-        'sales-agent-v2',
-        'test',
-      ];
+      const validNames = ['my-agent', 'agent-123', 'customer-service', 'sales-agent-v2', 'test'];
 
       for (const name of validNames) {
         const isValid = /^[a-z0-9-]+$/.test(name);
@@ -382,23 +373,34 @@ describe('Init Command - Template System', () => {
 
       const agentDir = path.join(agentsDir, 'analysis-agent');
       await fs.mkdir(agentDir, { recursive: true });
-      await fs.writeFile(
-        path.join(agentDir, 'agent.json'),
-        JSON.stringify(template, null, 2)
-      );
+      await fs.writeFile(path.join(agentDir, 'agent.json'), JSON.stringify(template, null, 2));
 
       const result = await AgentConfigLoader.load(agentDir);
       expect(result.success).toBe(true);
 
-      if (result.success) {
-        const data = result.value.post_call_analysis_data;
-        expect(data).toBeDefined();
-        expect(data).toHaveLength(2);
-        if (data && data.length >= 2 && data[0] && data[1]) {
-          expect(data[0].name).toBe('sentiment');
-          expect(data[1].type).toBe('boolean');
-        }
+      // Assert result is successful before accessing value
+      if (!result.success) {
+        throw new Error('Expected result to be successful');
       }
+
+      const data = result.value.post_call_analysis_data;
+      expect(data).toBeDefined();
+      expect(data).toHaveLength(2);
+
+      // Assert data is defined and has required elements
+      if (
+        data === null ||
+        data === undefined ||
+        data.length < 2 ||
+        data[0] === null ||
+        data[0] === undefined ||
+        data[1] === undefined
+      ) {
+        throw new Error('Expected data to have at least 2 elements');
+      }
+
+      expect(data[0].name).toBe('sentiment');
+      expect(data[1].type).toBe('boolean');
     });
   });
 

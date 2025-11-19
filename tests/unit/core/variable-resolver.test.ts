@@ -201,8 +201,7 @@ describe('VariableResolver', () => {
     });
 
     it('should handle duplicate variable usage', () => {
-      const promptText =
-        'Welcome to {{company_name}}! At {{company_name}} we care.';
+      const promptText = 'Welcome to {{company_name}}! At {{company_name}} we care.';
       const config: PromptConfig = {
         variables: {
           company_name: 'Acme Corp',
@@ -218,8 +217,7 @@ describe('VariableResolver', () => {
 
   describe('validate', () => {
     it('should pass validation when all variables are accounted for', () => {
-      const promptText =
-        'Welcome to {{company_name}}, {{user_id}}. Customer: {{customer_name}}.';
+      const promptText = 'Welcome to {{company_name}}, {{user_id}}. Customer: {{customer_name}}.';
       const config: PromptConfig = {
         variables: {
           company_name: 'Acme Corp',
@@ -240,8 +238,7 @@ describe('VariableResolver', () => {
     });
 
     it('should fail validation when dynamic variable is missing definition', () => {
-      const promptText =
-        'Customer {{customer_name}} has order {{order_id}}.';
+      const promptText = 'Customer {{customer_name}} has order {{order_id}}.';
       const config: PromptConfig = {
         dynamic_variables: {
           customer_name: {
@@ -261,8 +258,7 @@ describe('VariableResolver', () => {
     });
 
     it('should pass validation with system variables', () => {
-      const promptText =
-        'Time: {{current_time_UTC}} for {{company_name}}.';
+      const promptText = 'Time: {{current_time_UTC}} for {{company_name}}.';
       const config: PromptConfig = {
         variables: {
           company_name: 'Acme Corp',
@@ -299,19 +295,13 @@ describe('VariableResolver', () => {
   describe('isSystemVariable', () => {
     it('should recognize current_time variables', () => {
       expect(VariableResolver.isSystemVariable('current_time_UTC')).toBe(true);
-      expect(VariableResolver.isSystemVariable('current_time_America/New_York')).toBe(
-        true
-      );
-      expect(VariableResolver.isSystemVariable('current_time_Australia/Sydney')).toBe(
-        true
-      );
+      expect(VariableResolver.isSystemVariable('current_time_America/New_York')).toBe(true);
+      expect(VariableResolver.isSystemVariable('current_time_Australia/Sydney')).toBe(true);
     });
 
     it('should recognize current_date variables', () => {
       expect(VariableResolver.isSystemVariable('current_date_UTC')).toBe(true);
-      expect(VariableResolver.isSystemVariable('current_date_America/Chicago')).toBe(
-        true
-      );
+      expect(VariableResolver.isSystemVariable('current_date_America/Chicago')).toBe(true);
     });
 
     it('should recognize Retell system variables', () => {
@@ -343,8 +333,7 @@ describe('VariableResolver', () => {
     });
 
     it('should return unaccounted variables', () => {
-      const promptText =
-        'Welcome {{company_name}}, user {{user_id}}, order {{order_id}}.';
+      const promptText = 'Welcome {{company_name}}, user {{user_id}}, order {{order_id}}.';
       const config: PromptConfig = {
         variables: {
           company_name: 'Acme Corp',
@@ -357,8 +346,7 @@ describe('VariableResolver', () => {
     });
 
     it('should not include system variables as unaccounted', () => {
-      const promptText =
-        'Time {{current_time_UTC}} for {{company_name}} and {{unknown_var}}.';
+      const promptText = 'Time {{current_time_UTC}} for {{company_name}} and {{unknown_var}}.';
       const config: PromptConfig = {
         variables: {
           company_name: 'Acme Corp',

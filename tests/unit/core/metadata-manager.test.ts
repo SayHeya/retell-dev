@@ -309,9 +309,13 @@ describe('MetadataManager', () => {
       const result = await MetadataManager.read(agentDir, 'staging');
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.message).toContain('Invalid JSON');
+
+      // Assert result is failure before accessing error
+      if (result.success) {
+        throw new Error('Expected result to be failure');
       }
+
+      expect(result.error.message).toContain('Invalid JSON');
     });
 
     it('should return error for invalid schema', async () => {
@@ -326,9 +330,13 @@ describe('MetadataManager', () => {
       const result = await MetadataManager.read(agentDir, 'staging');
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.message).toContain('Invalid metadata schema');
+
+      // Assert result is failure before accessing error
+      if (result.success) {
+        throw new Error('Expected result to be failure');
       }
+
+      expect(result.error.message).toContain('Invalid metadata schema');
     });
   });
 });

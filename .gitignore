@@ -19,6 +19,13 @@ coverage/
 # Workspace credentials (IMPORTANT: Never commit API keys)
 workspaces.json
 
+# Phone number directory - Twilio data (contains credential references)
+phone-numbers/twilio/trunks.json
+phone-numbers/twilio/sync.json
+
+# Test environment (isolated testing environment)
+test-environment/
+
 # Test agents (generated for testing)
 test-agents-*
 test-agents-100/

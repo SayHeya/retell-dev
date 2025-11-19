@@ -12,10 +12,7 @@ export const workspaceInitCommand = new Command('init')
     try {
       await executeWorkspaceInit(options);
     } catch (error) {
-      console.error(
-        'Workspace init failed:',
-        error instanceof Error ? error.message : error
-      );
+      console.error('Workspace init failed:', error instanceof Error ? error.message : error);
       process.exit(1);
     }
   });
@@ -30,9 +27,7 @@ async function executeWorkspaceInit(options: WorkspaceInitOptions): Promise<void
   // Check if file exists and force not set
   const exists = await WorkspaceConfigLoader.exists();
   if (exists && !options.force) {
-    console.error(
-      '❌ workspaces.json already exists. Use --force to overwrite.'
-    );
+    console.error('❌ workspaces.json already exists. Use --force to overwrite.');
     process.exit(1);
   }
 

@@ -8,11 +8,7 @@ import type { WorkspaceType } from '../../types/agent.types';
 export const pullCommand = new Command('pull')
   .description('Pull agent configuration from Retell workspace to local')
   .argument('<agent-name>', 'Name of the agent to pull')
-  .option(
-    '-w, --workspace <workspace>',
-    'Source workspace (staging or production)',
-    'staging'
-  )
+  .option('-w, --workspace <workspace>', 'Source workspace (staging or production)', 'staging')
   .option('-f, --force', 'Force pull even if local has changes', false)
   .action(async (agentName: string, options: PullOptions) => {
     try {
@@ -28,10 +24,7 @@ type PullOptions = {
   force: boolean;
 };
 
-async function executePull(
-  agentName: string,
-  options: PullOptions
-): Promise<void> {
+async function executePull(agentName: string, options: PullOptions): Promise<void> {
   console.log(`Pulling agent '${agentName}' from ${options.workspace}...`);
 
   // TODO: Implement pull logic

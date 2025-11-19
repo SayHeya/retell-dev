@@ -19,8 +19,7 @@ import type { WorkspaceType } from '../../types/agent.types';
 // Main phone command group
 // ============================================================================
 
-export const phoneCommand = new Command('phone')
-  .description('Manage phone numbers and SIP trunks');
+export const phoneCommand = new Command('phone').description('Manage phone numbers and SIP trunks');
 
 // ============================================================================
 // Subcommand: phone create
@@ -42,7 +41,10 @@ phoneCommand
     try {
       await executeCreatePhone(options);
     } catch (error) {
-      console.error('Failed to create phone number:', error instanceof Error ? error.message : error);
+      console.error(
+        'Failed to create phone number:',
+        error instanceof Error ? error.message : error
+      );
       process.exit(1);
     }
   });
@@ -69,7 +71,10 @@ phoneCommand
     try {
       await executeImportPhone(phoneNumber, terminationUri, options);
     } catch (error) {
-      console.error('Failed to import phone number:', error instanceof Error ? error.message : error);
+      console.error(
+        'Failed to import phone number:',
+        error instanceof Error ? error.message : error
+      );
       process.exit(1);
     }
   });
@@ -87,7 +92,10 @@ phoneCommand
     try {
       await executeListPhones(options);
     } catch (error) {
-      console.error('Failed to list phone numbers:', error instanceof Error ? error.message : error);
+      console.error(
+        'Failed to list phone numbers:',
+        error instanceof Error ? error.message : error
+      );
       process.exit(1);
     }
   });
@@ -130,7 +138,10 @@ phoneCommand
     try {
       await executeUpdatePhone(phoneNumber, options);
     } catch (error) {
-      console.error('Failed to update phone number:', error instanceof Error ? error.message : error);
+      console.error(
+        'Failed to update phone number:',
+        error instanceof Error ? error.message : error
+      );
       process.exit(1);
     }
   });
@@ -149,7 +160,10 @@ phoneCommand
     try {
       await executeDeletePhone(phoneNumber, options);
     } catch (error) {
-      console.error('Failed to delete phone number:', error instanceof Error ? error.message : error);
+      console.error(
+        'Failed to delete phone number:',
+        error instanceof Error ? error.message : error
+      );
       process.exit(1);
     }
   });
@@ -257,11 +271,11 @@ async function executeCreatePhone(options: CreatePhoneOptions): Promise<void> {
   const phoneNumber = result.value as Record<string, unknown>;
 
   console.log('✓ Phone number created successfully!\n');
-  console.log('Number:', phoneNumber["phone_number"]);
-  console.log('Pretty:', phoneNumber["phone_number_pretty"]);
-  console.log('Type:', phoneNumber["phone_number_type"]);
-  if (phoneNumber["area_code"]) {
-    console.log('Area Code:', phoneNumber["area_code"]);
+  console.log('Number:', phoneNumber['phone_number']);
+  console.log('Pretty:', phoneNumber['phone_number_pretty']);
+  console.log('Type:', phoneNumber['phone_number_type']);
+  if (phoneNumber['area_code']) {
+    console.log('Area Code:', phoneNumber['area_code']);
   }
   if (options.inboundAgent) {
     console.log('Inbound Agent:', options.inboundAgent);
@@ -299,28 +313,28 @@ async function executeImportPhone(
   };
 
   if (options.username) {
-    importRequest["sip_trunk_auth_username"] = options.username;
+    importRequest['sip_trunk_auth_username'] = options.username;
   }
   if (options.password) {
-    importRequest["sip_trunk_auth_password"] = options.password;
+    importRequest['sip_trunk_auth_password'] = options.password;
   }
   if (options.inboundAgent) {
-    importRequest["inbound_agent_id"] = options.inboundAgent;
+    importRequest['inbound_agent_id'] = options.inboundAgent;
   }
   if (options.outboundAgent) {
-    importRequest["outbound_agent_id"] = options.outboundAgent;
+    importRequest['outbound_agent_id'] = options.outboundAgent;
   }
   if (options.inboundVersion) {
-    importRequest["inbound_agent_version"] = parseInt(options.inboundVersion, 10);
+    importRequest['inbound_agent_version'] = parseInt(options.inboundVersion, 10);
   }
   if (options.outboundVersion) {
-    importRequest["outbound_agent_version"] = parseInt(options.outboundVersion, 10);
+    importRequest['outbound_agent_version'] = parseInt(options.outboundVersion, 10);
   }
   if (options.nickname) {
-    importRequest["nickname"] = options.nickname;
+    importRequest['nickname'] = options.nickname;
   }
   if (options.webhook) {
-    importRequest["inbound_webhook_url"] = options.webhook;
+    importRequest['inbound_webhook_url'] = options.webhook;
   }
 
   // Import phone number
@@ -332,7 +346,7 @@ async function executeImportPhone(
   const number = result.value as Record<string, unknown>;
 
   console.log('✓ Phone number imported successfully!\n');
-  console.log('Number:', number["phone_number"]);
+  console.log('Number:', number['phone_number']);
   console.log('Termination URI:', terminationUri);
   if (options.username) {
     console.log('SIP Auth Username:', options.username);
@@ -389,17 +403,17 @@ async function executeListPhones(options: ListPhoneOptions): Promise<void> {
 
   for (const number of phoneNumbers) {
     console.log('─'.repeat(60));
-    console.log('Number:', number["phone_number"]);
-    console.log('Pretty:', number["phone_number_pretty"]);
-    console.log('Type:', number["phone_number_type"]);
-    if (number["nickname"]) {
-      console.log('Nickname:', number["nickname"]);
+    console.log('Number:', number['phone_number']);
+    console.log('Pretty:', number['phone_number_pretty']);
+    console.log('Type:', number['phone_number_type']);
+    if (number['nickname']) {
+      console.log('Nickname:', number['nickname']);
     }
-    if (number["inbound_agent_id"]) {
-      console.log('Inbound Agent:', number["inbound_agent_id"]);
+    if (number['inbound_agent_id']) {
+      console.log('Inbound Agent:', number['inbound_agent_id']);
     }
-    if (number["outbound_agent_id"]) {
-      console.log('Outbound Agent:', number["outbound_agent_id"]);
+    if (number['outbound_agent_id']) {
+      console.log('Outbound Agent:', number['outbound_agent_id']);
     }
     console.log();
   }
@@ -431,33 +445,33 @@ async function executeGetPhone(phoneNumber: string, options: GetPhoneOptions): P
   }
 
   console.log(`\nPhone Number Details:\n`);
-  console.log('Number:', number["phone_number"]);
-  console.log('Pretty:', number["phone_number_pretty"]);
-  console.log('Type:', number["phone_number_type"]);
+  console.log('Number:', number['phone_number']);
+  console.log('Pretty:', number['phone_number_pretty']);
+  console.log('Type:', number['phone_number_type']);
 
-  if (number["nickname"]) {
-    console.log('Nickname:', number["nickname"]);
+  if (number['nickname']) {
+    console.log('Nickname:', number['nickname']);
   }
-  if (number["area_code"]) {
-    console.log('Area Code:', number["area_code"]);
+  if (number['area_code']) {
+    console.log('Area Code:', number['area_code']);
   }
 
   console.log('\nAgent Configuration:');
-  console.log('  Inbound Agent:', number["inbound_agent_id"] || 'none');
-  console.log('  Outbound Agent:', number["outbound_agent_id"] || 'none');
-  if (number["inbound_agent_version"]) {
-    console.log('  Inbound Version:', number["inbound_agent_version"]);
+  console.log('  Inbound Agent:', number['inbound_agent_id'] || 'none');
+  console.log('  Outbound Agent:', number['outbound_agent_id'] || 'none');
+  if (number['inbound_agent_version']) {
+    console.log('  Inbound Version:', number['inbound_agent_version']);
   }
-  if (number["outbound_agent_version"]) {
-    console.log('  Outbound Version:', number["outbound_agent_version"]);
-  }
-
-  if (number["inbound_webhook_url"]) {
-    console.log('\nWebhook URL:', number["inbound_webhook_url"]);
+  if (number['outbound_agent_version']) {
+    console.log('  Outbound Version:', number['outbound_agent_version']);
   }
 
-  if (number["last_modification_timestamp"]) {
-    const date = new Date(number["last_modification_timestamp"] as number);
+  if (number['inbound_webhook_url']) {
+    console.log('\nWebhook URL:', number['inbound_webhook_url']);
+  }
+
+  if (number['last_modification_timestamp']) {
+    const date = new Date(number['last_modification_timestamp'] as number);
     console.log('\nLast Modified:', date.toISOString());
   }
 }
@@ -481,27 +495,29 @@ async function executeUpdatePhone(phoneNumber: string, options: UpdatePhoneOptio
   let hasChanges = false;
 
   if (options.inboundAgent !== undefined) {
-    updateRequest["inbound_agent_id"] = options.inboundAgent === 'null' ? null : options.inboundAgent;
+    updateRequest['inbound_agent_id'] =
+      options.inboundAgent === 'null' ? null : options.inboundAgent;
     hasChanges = true;
   }
   if (options.outboundAgent !== undefined) {
-    updateRequest["outbound_agent_id"] = options.outboundAgent === 'null' ? null : options.outboundAgent;
+    updateRequest['outbound_agent_id'] =
+      options.outboundAgent === 'null' ? null : options.outboundAgent;
     hasChanges = true;
   }
   if (options.inboundVersion) {
-    updateRequest["inbound_agent_version"] = parseInt(options.inboundVersion, 10);
+    updateRequest['inbound_agent_version'] = parseInt(options.inboundVersion, 10);
     hasChanges = true;
   }
   if (options.outboundVersion) {
-    updateRequest["outbound_agent_version"] = parseInt(options.outboundVersion, 10);
+    updateRequest['outbound_agent_version'] = parseInt(options.outboundVersion, 10);
     hasChanges = true;
   }
   if (options.nickname !== undefined) {
-    updateRequest["nickname"] = options.nickname;
+    updateRequest['nickname'] = options.nickname;
     hasChanges = true;
   }
   if (options.webhook !== undefined) {
-    updateRequest["inbound_webhook_url"] = options.webhook;
+    updateRequest['inbound_webhook_url'] = options.webhook;
     hasChanges = true;
   }
 

@@ -22,11 +22,7 @@ export class HashCalculator {
       const hash = createHash('sha256').update(canonical, 'utf8').digest('hex');
       return Ok(`sha256:${hash}` as Hash);
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to calculate agent hash')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to calculate agent hash'));
     }
   }
 
@@ -41,11 +37,7 @@ export class HashCalculator {
       const hash = createHash('sha256').update(content, 'utf8').digest('hex');
       return Ok(`sha256:${hash}` as Hash);
     } catch (error) {
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to calculate file hash')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to calculate file hash'));
     }
   }
 
@@ -85,7 +77,7 @@ export class HashCalculator {
 
     if (Array.isArray(obj)) {
       const items = obj.map((item) => this.canonicalizeJSON(item));
-      return `[${items.join(',') }]`;
+      return `[${items.join(',')}]`;
     }
 
     // Sort object keys and recursively canonicalize values

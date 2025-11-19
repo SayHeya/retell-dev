@@ -37,6 +37,8 @@ import { listCommand } from './commands/list';
 import { workspaceInitCommand } from './commands/workspace-init';
 import { bulkCreateCommand } from './commands/bulk-create';
 import { updateCommand } from './commands/update';
+import { deleteCommand } from './commands/delete';
+import { diffCommand } from './commands/diff';
 import { phoneCommand } from './commands/phone';
 
 const program = new Command();
@@ -47,8 +49,7 @@ program
   .version('1.0.0');
 
 // Create workspace command group
-const workspaceCommand = new Command('workspace')
-  .description('Manage workspace configuration');
+const workspaceCommand = new Command('workspace').description('Manage workspace configuration');
 
 workspaceCommand.addCommand(workspaceInitCommand);
 
@@ -60,6 +61,8 @@ program.addCommand(pullCommand);
 program.addCommand(statusCommand);
 program.addCommand(listCommand);
 program.addCommand(updateCommand);
+program.addCommand(deleteCommand);
+program.addCommand(diffCommand);
 program.addCommand(phoneCommand);
 program.addCommand(workspaceCommand);
 

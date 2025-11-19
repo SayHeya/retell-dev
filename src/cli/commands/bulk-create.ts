@@ -9,9 +9,10 @@ import type { AgentConfig } from '../../types/agent.types';
 import { WorkspaceConfigLoader } from '../../config/workspace-config';
 
 // Dynamic import for inquirer (ESM module)
-let inquirer: any;
-async function getInquirer() {
-  if (!inquirer) {
+type InquirerModule = typeof import('inquirer');
+let inquirer: Awaited<InquirerModule>['default'] | null = null;
+async function getInquirer(): Promise<Awaited<InquirerModule>['default']> {
+  if (inquirer === null) {
     inquirer = (await import('inquirer')).default;
   }
   return inquirer;
@@ -50,7 +51,7 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
 
   // Parse count
   const count = parseInt(options.count, 10);
-  if (isNaN(count) || count < 1 || count > 10000) {
+  if (Number.isNaN(count) || count < 1 || count > 10000) {
     throw new Error('Count must be a number between 1 and 10000');
   }
 
@@ -58,19 +59,19 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
   if (!options.skipValidation) {
     console.log('Validating workspace configuration...');
     const workspaceExists = await WorkspaceConfigLoader.exists();
-    if (!workspaceExists) {
+    if (workspaceExists !== true) {
       throw new Error(
-        'workspaces.json not found. Please run \'retell workspace init\' first.\n' +
-        'Or use --skip-validation to bypass this check.'
+        "workspaces.json not found. Please run 'retell workspace init' first.\n" +
+          'Or use --skip-validation to bypass this check.'
       );
     }
 
     // Validate it can be loaded
     const configResult = await WorkspaceConfigLoader.load();
-    if (!configResult.success) {
+    if (configResult.success !== true) {
       throw new Error(
         `Invalid workspace configuration: ${configResult.error.message}\n` +
-        'Run \'retell workspace init --force\' to regenerate.'
+          "Run 'retell workspace init --force' to regenerate."
       );
     }
     console.log('✓ Workspace configuration validated\n');
@@ -100,7 +101,7 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
   } catch (error) {
     throw new Error(
       `Failed to load template '${templateFile}' from ${templatesPath}\n` +
-      `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 
@@ -132,22 +133,24 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
 
   if (conflicts.length > 0) {
     console.log(`\n⚠️  Warning: ${conflicts.length} agent(s) already exist and will be skipped:`);
-    console.log(`   ${conflicts.slice(0, 5).join(', ')}${conflicts.length > 5 ? ` ... and ${conflicts.length - 5} more` : ''}`);
+    console.log(
+      `   ${conflicts.slice(0, 5).join(', ')}${conflicts.length > 5 ? ` ... and ${conflicts.length - 5} more` : ''}`
+    );
   }
 
   // Confirm
   if (!options.yes) {
     const inq = await getInquirer();
-    const { confirm } = await inq.prompt([
+    const result = (await inq.prompt([
       {
         type: 'confirm',
         name: 'confirm',
         message: `Create ${count - conflicts.length} agent(s)?`,
         default: true,
       },
-    ]);
+    ])) as { confirm: boolean };
 
-    if (!confirm) {
+    if (result.confirm !== true) {
       console.log('\n❌ Cancelled');
       process.exit(0);
     }
@@ -163,7 +166,9 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
 
   for (let i = 0; i < agentNames.length; i++) {
     const agentName = agentNames[i];
-    if (!agentName) continue; // Type guard for array access
+    if (agentName === null || agentName === undefined || agentName === '') {
+      continue;
+    } // Type guard for array access
 
     const agentNum = i + 1;
 
@@ -190,10 +195,13 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
         agent_name: customAgentName,
         llm_config: {
           ...templateConfig.llm_config,
-          general_prompt: templateConfig.llm_config.general_prompt
-            ? `You are ${customAgentName}. ${templateConfig.llm_config.general_prompt}`
-            : templateConfig.llm_config.general_prompt
-        }
+          general_prompt:
+            templateConfig.llm_config.general_prompt !== null &&
+            templateConfig.llm_config.general_prompt !== undefined &&
+            templateConfig.llm_config.general_prompt !== ''
+              ? `You are ${customAgentName}. ${templateConfig.llm_config.general_prompt}`
+              : templateConfig.llm_config.general_prompt,
+        },
       };
 
       // Create directory structure
@@ -242,7 +250,9 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
         name: agentName,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      console.error(`[${agentNum}/${count}] ❌ Failed ${agentName}: ${error instanceof Error ? error.message : error}`);
+      console.error(
+        `[${agentNum}/${count}] ❌ Failed ${agentName}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 

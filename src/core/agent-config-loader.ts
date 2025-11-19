@@ -47,15 +47,9 @@ export class AgentConfigLoader {
         );
       }
       if (error instanceof SyntaxError) {
-        return Err(
-          new Error(`Invalid JSON in agent.json: ${error.message}`)
-        );
+        return Err(new Error(`Invalid JSON in agent.json: ${error.message}`));
       }
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to load agent config')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to load agent config'));
     }
   }
 
@@ -68,10 +62,7 @@ export class AgentConfigLoader {
    * @param config - Agent configuration to save
    * @returns Result indicating success or error
    */
-  static async save(
-    agentDir: string,
-    config: unknown
-  ): Promise<Result<void, Error>> {
+  static async save(agentDir: string, config: unknown): Promise<Result<void, Error>> {
     try {
       // Validate config first
       const validated = AgentConfigSchema.parse(config);
@@ -94,11 +85,7 @@ export class AgentConfigLoader {
           )
         );
       }
-      return Err(
-        error instanceof Error
-          ? error
-          : new Error('Failed to save agent config')
-      );
+      return Err(error instanceof Error ? error : new Error('Failed to save agent config'));
     }
   }
 

@@ -34,7 +34,9 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt?: string; model?: string } }).value;
+      const transformed = (
+        result as { success: true; value: { general_prompt?: string; model?: string } }
+      ).value;
       expect(transformed.general_prompt).toBe('You are a helpful assistant.');
       expect(transformed.model).toBe('gpt-4o-mini');
     });
@@ -65,8 +67,7 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt: string } })
-        .value;
+      const transformed = (result as { success: true; value: { general_prompt: string } }).value;
       expect(transformed.general_prompt).toBe('Welcome to Acme Corp!');
     });
 
@@ -96,8 +97,7 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt: string } })
-        .value;
+      const transformed = (result as { success: true; value: { general_prompt: string } }).value;
       expect(transformed.general_prompt).toBe('Hello {{user_name}} at Acme Corp!');
     });
 
@@ -132,11 +132,8 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt: string } })
-        .value;
-      expect(transformed.general_prompt).toBe(
-        'Customer {{customer_name}} from Acme Corp.'
-      );
+      const transformed = (result as { success: true; value: { general_prompt: string } }).value;
+      expect(transformed.general_prompt).toBe('Customer {{customer_name}} from Acme Corp.');
     });
 
     it('should include all agent-level fields', () => {
@@ -152,9 +149,7 @@ describe('AgentTransformer', () => {
         backchannel_frequency: 0.7,
         ambient_sound: 'office',
         boosted_keywords: ['support', 'help'],
-        pronunciation_dictionary: [
-          { word: 'API', pronunciation: 'A P I' },
-        ],
+        pronunciation_dictionary: [{ word: 'API', pronunciation: 'A P I' }],
         normalize_for_speech: true,
         webhook_url: 'https://api.example.com/webhook',
         llm_config: {
@@ -211,10 +206,12 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as {
-        success: true;
-        value: { model: string; temperature: number; begin_message: string };
-      }).value;
+      const transformed = (
+        result as {
+          success: true;
+          value: { model: string; temperature: number; begin_message: string };
+        }
+      ).value;
       expect(transformed.model).toBe('gpt-4o-mini');
       expect(transformed.temperature).toBe(0.7);
       expect(transformed.begin_message).toBe('Hello!');
@@ -222,10 +219,7 @@ describe('AgentTransformer', () => {
 
     it('should validate variables are accounted for', async () => {
       await fs.mkdir(path.join(promptsDir, 'base'), { recursive: true });
-      await fs.writeFile(
-        path.join(promptsDir, 'base/greeting.txt'),
-        'Hello {{undefined_var}}!'
-      );
+      await fs.writeFile(path.join(promptsDir, 'base/greeting.txt'), 'Hello {{undefined_var}}!');
 
       const config: AgentConfig = {
         agent_name: 'Test Agent',
@@ -276,19 +270,13 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt?: string } })
-        .value;
+      const transformed = (result as { success: true; value: { general_prompt?: string } }).value;
       expect(transformed.general_prompt).toContain('Welcome to Acme Corp!');
-      expect(transformed.general_prompt).toContain(
-        'Thank you for contacting Acme Corp.'
-      );
+      expect(transformed.general_prompt).toContain('Thank you for contacting Acme Corp.');
     });
 
     it('should transform agent from fixture', async () => {
-      const fixturePromptsDir = path.join(
-        process.cwd(),
-        'tests/fixtures/complete-project/prompts'
-      );
+      const fixturePromptsDir = path.join(process.cwd(), 'tests/fixtures/complete-project/prompts');
       const fixtureAgentPath = path.join(
         process.cwd(),
         'tests/fixtures/complete-project/agents/customer-service/agent.json'
@@ -300,8 +288,7 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, fixturePromptsDir);
 
       expect(result.success).toBe(true);
-      const transformed = (result as { success: true; value: { general_prompt?: string } })
-        .value;
+      const transformed = (result as { success: true; value: { general_prompt?: string } }).value;
       // Static variables should be replaced
       expect(transformed.general_prompt).toContain('Acme Corp'); // company_name static var
       expect(transformed.general_prompt).toContain('9am-5pm EST'); // support_hours static var
@@ -326,9 +313,13 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.message).toContain('Either prompt_config or general_prompt');
+
+      // Assert result is failure before accessing error
+      if (result.success) {
+        throw new Error('Expected result to be failure');
       }
+
+      expect(result.error.message).toContain('Either prompt_config or general_prompt');
     });
 
     it('should return error when prompt section file does not exist', async () => {
@@ -348,9 +339,13 @@ describe('AgentTransformer', () => {
       const result = await AgentTransformer.transformToLlm(config, promptsDir);
 
       expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.message).toContain('not found');
+
+      // Assert result is failure before accessing error
+      if (result.success) {
+        throw new Error('Expected result to be failure');
       }
+
+      expect(result.error.message).toContain('not found');
     });
   });
 

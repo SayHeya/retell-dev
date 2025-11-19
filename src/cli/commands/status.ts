@@ -44,9 +44,7 @@ async function executeStatus(agentName: string | undefined, options: StatusOptio
   const agentsDir = path.resolve(options.path);
 
   // Find agents to check
-  const agentNames = agentName !== undefined
-    ? [agentName]
-    : await findAllAgents(agentsDir);
+  const agentNames = agentName !== undefined ? [agentName] : await findAllAgents(agentsDir);
 
   if (agentNames.length === 0) {
     console.log('No agents found.');
@@ -68,9 +66,7 @@ async function executeStatus(agentName: string | undefined, options: StatusOptio
 async function findAllAgents(agentsDir: string): Promise<string[]> {
   try {
     const entries = await fs.readdir(agentsDir, { withFileTypes: true });
-    const agentDirs = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
+    const agentDirs = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
     // Filter to only directories with agent.json
     const validAgents: string[] = [];
@@ -102,32 +98,36 @@ async function getAgentStatus(agentPath: string, name: string): Promise<AgentSta
   // Read staging metadata
   const stagingMetadata = await MetadataManager.read(agentPath, 'staging');
   const stagingHash = stagingMetadata.success ? stagingMetadata.value.config_hash : null;
-  const stagingInSync = localHash !== null && stagingHash !== null
-    ? HashCalculator.compareHashes(localHash as never, stagingHash as never)
-    : false;
+  const stagingInSync =
+    localHash !== null && stagingHash !== null
+      ? HashCalculator.compareHashes(localHash as never, stagingHash as never)
+      : false;
 
   const staging: WorkspaceStatus = {
     agentId: stagingMetadata.success ? stagingMetadata.value.agent_id : null,
     hash: stagingHash,
-    lastSynced: stagingMetadata.success && stagingMetadata.value.last_sync !== null
-      ? new Date(stagingMetadata.value.last_sync).getTime()
-      : null,
+    lastSynced:
+      stagingMetadata.success && stagingMetadata.value.last_sync !== null
+        ? new Date(stagingMetadata.value.last_sync).getTime()
+        : null,
     inSync: stagingInSync,
   };
 
   // Read production metadata
   const productionMetadata = await MetadataManager.read(agentPath, 'production');
   const productionHash = productionMetadata.success ? productionMetadata.value.config_hash : null;
-  const productionInSync = localHash !== null && productionHash !== null
-    ? HashCalculator.compareHashes(localHash as never, productionHash as never)
-    : false;
+  const productionInSync =
+    localHash !== null && productionHash !== null
+      ? HashCalculator.compareHashes(localHash as never, productionHash as never)
+      : false;
 
   const production: WorkspaceStatus = {
     agentId: productionMetadata.success ? productionMetadata.value.agent_id : null,
     hash: productionHash,
-    lastSynced: productionMetadata.success && productionMetadata.value.last_sync !== null
-      ? new Date(productionMetadata.value.last_sync).getTime()
-      : null,
+    lastSynced:
+      productionMetadata.success && productionMetadata.value.last_sync !== null
+        ? new Date(productionMetadata.value.last_sync).getTime()
+        : null,
     inSync: productionInSync,
   };
 
@@ -144,14 +144,15 @@ function displayStatus(statuses: AgentStatus[]): void {
 
   for (const status of statuses) {
     console.log(`Agent: ${status.name}`);
-    console.log(`  Local: ${status.localHash ? status.localHash.substring(0, 12) + '...' : 'ERROR'}`);
+    console.log(
+      `  Local: ${status.localHash ? status.localHash.substring(0, 12) + '...' : 'ERROR'}`
+    );
 
     console.log(`  Staging:`);
     if (status.staging.agentId !== null) {
       console.log(`    ID: ${status.staging.agentId}`);
-      const stagingHashDisplay = status.staging.hash !== null
-        ? status.staging.hash.substring(0, 12) + '...'
-        : 'unknown';
+      const stagingHashDisplay =
+        status.staging.hash !== null ? status.staging.hash.substring(0, 12) + '...' : 'unknown';
       console.log(`    Hash: ${stagingHashDisplay}`);
       console.log(`    Last Synced: ${formatTimestamp(status.staging.lastSynced)}`);
       console.log(`    Status: ${status.staging.inSync ? '✓ IN SYNC' : '✗ OUT OF SYNC'}`);
@@ -162,9 +163,10 @@ function displayStatus(statuses: AgentStatus[]): void {
     console.log(`  Production:`);
     if (status.production.agentId !== null) {
       console.log(`    ID: ${status.production.agentId}`);
-      const prodHashDisplay = status.production.hash !== null
-        ? status.production.hash.substring(0, 12) + '...'
-        : 'unknown';
+      const prodHashDisplay =
+        status.production.hash !== null
+          ? status.production.hash.substring(0, 12) + '...'
+          : 'unknown';
       console.log(`    Hash: ${prodHashDisplay}`);
       console.log(`    Last Synced: ${formatTimestamp(status.production.lastSynced)}`);
       console.log(`    Status: ${status.production.inSync ? '✓ IN SYNC' : '✗ OUT OF SYNC'}`);
