@@ -1,0 +1,239 @@
+# Retell CLI - Production Deployment Workflow
+# This workflow deploys changed agents to production when merged to production branch
+# Exported by: retell workflows init
+
+name: Deploy to Production
+
+on:
+  push:
+    branches: [production]
+    paths:
+      - 'agents/**'
+      - 'prompts/**'
+
+  # Allow manual trigger with confirmation
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: 'Specific agent to deploy (leave empty for changed only)'
+        required: false
+        type: string
+      deploy_all:
+        description: 'Deploy all agents (ignores changed detection)'
+        required: false
+        default: false
+        type: boolean
+      confirm:
+        description: 'Type "PRODUCTION" to confirm deployment'
+        required: true
+        type: string
+
+jobs:
+  validate-trigger:
+    name: Validate Deployment
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+
+    steps:
+      - name: Check manual trigger confirmation
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event.inputs.confirm }}" != "PRODUCTION" ]; then
+              echo "::error::You must type 'PRODUCTION' to confirm manual deployment"
+              echo "proceed=false" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          fi
+          echo "proceed=true" >> $GITHUB_OUTPUT
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: validate-trigger
+    if: needs.validate-trigger.outputs.proceed == 'true'
+    environment: production
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changes
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Retell CLI
+        run: npm install -g retell-cli
+
+      - name: Generate workspace config
+        env:
+          RETELL_STAGING_API_KEY: ${{ secrets.RETELL_STAGING_API_KEY }}
+          RETELL_PRODUCTION_API_KEY: ${{ secrets.RETELL_PRODUCTION_API_KEY }}
+        run: |
+          cat > workspaces.json << EOF
+          {
+            "staging": {
+              "api_key": "$RETELL_STAGING_API_KEY",
+              "name": "Staging Workspace",
+              "base_url": "https://api.retellai.com"
+            },
+            "production": {
+              "api_key": "$RETELL_PRODUCTION_API_KEY",
+              "name": "Production Workspace",
+              "base_url": "https://api.retellai.com"
+            }
+          }
+          EOF
+
+      - name: Detect changed agents
+        id: changed
+        if: ${{ github.event.inputs.deploy_all != 'true' && github.event.inputs.agent == '' }}
+        run: |
+          echo "Detecting changed agents from merge..."
+          changed_agents=""
+
+          # Get changed files from the merge commit
+          changed_files=$(git diff --name-only HEAD~1 HEAD -- agents/)
+
+          # Extract unique agent directories
+          for file in $changed_files; do
+            agent_dir=$(echo "$file" | cut -d'/' -f1-2)
+            if [ -d "$agent_dir" ] && [[ ! "$changed_agents" =~ "$agent_dir" ]]; then
+              changed_agents="$changed_agents $agent_dir"
+            fi
+          done
+
+          # Check if prompts changed (affects all agents)
+          changed_prompts=$(git diff --name-only HEAD~1 HEAD -- prompts/)
+          if [ -n "$changed_prompts" ]; then
+            echo "Prompts changed - deploying all agents"
+            changed_agents=$(ls -d agents/*/ 2>/dev/null | tr '\n' ' ')
+          fi
+
+          echo "Agents to deploy: $changed_agents"
+          echo "agents=$changed_agents" >> $GITHUB_OUTPUT
+
+      - name: Set deployment targets
+        id: targets
+        run: |
+          if [ "${{ github.event.inputs.agent }}" != "" ]; then
+            echo "agents=agents/${{ github.event.inputs.agent }}" >> $GITHUB_OUTPUT
+            echo "Deploying specific agent: ${{ github.event.inputs.agent }}"
+          elif [ "${{ github.event.inputs.deploy_all }}" = "true" ]; then
+            all_agents=$(ls -d agents/*/ 2>/dev/null | tr '\n' ' ')
+            echo "agents=$all_agents" >> $GITHUB_OUTPUT
+            echo "Deploying all agents"
+          else
+            echo "agents=${{ steps.changed.outputs.agents }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify staging sync
+        run: |
+          echo "Verifying agents were deployed to staging first..."
+          for agent_dir in ${{ steps.targets.outputs.agents }}; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              if [ ! -f "$agent_dir/staging.json" ]; then
+                echo "::error::Agent $agent_name has never been deployed to staging"
+                exit 1
+              fi
+              # Check if staging metadata exists and has agent_id
+              if ! jq -e '.agent_id' "$agent_dir/staging.json" > /dev/null 2>&1; then
+                echo "::error::Agent $agent_name missing staging deployment"
+                exit 1
+              fi
+              echo "Verified: $agent_name has staging deployment"
+            fi
+          done
+
+      - name: Deploy agents to production
+        run: |
+          agents="${{ steps.targets.outputs.agents }}"
+
+          if [ -z "$agents" ]; then
+            echo "No agents to deploy"
+            exit 0
+          fi
+
+          echo "Deploying to production workspace..."
+          for agent_dir in $agents; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "=========================================="
+              echo "Deploying to PRODUCTION: $agent_name"
+              echo "=========================================="
+              retell push "$agent_dir" -w production --yes
+              echo ""
+            fi
+          done
+
+      - name: Update metadata with GitOps annotations
+        run: |
+          echo "Updating production metadata..."
+          for agent_dir in ${{ steps.targets.outputs.agents }}; do
+            if [ -d "$agent_dir" ] && [ -f "$agent_dir/production.json" ]; then
+              tmp=$(mktemp)
+              jq --arg commit "${{ github.sha }}" \
+                 --arg branch "production" \
+                 --arg actor "${{ github.actor }}" \
+                 --arg run_id "${{ github.run_id }}" \
+                 --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+                 '. + {
+                   source_commit: $commit,
+                   source_branch: $branch,
+                   deployed_by: $actor,
+                   workflow_run_id: $run_id,
+                   deployed_at: $timestamp
+                 }' "$agent_dir/production.json" > "$tmp" && mv "$tmp" "$agent_dir/production.json"
+            fi
+          done
+
+      - name: Commit metadata updates
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add agents/*/production.json
+          if git diff --staged --quiet; then
+            echo "No metadata changes to commit"
+          else
+            git commit -m "chore: update production metadata after deployment
+
+          Deployed by: ${{ github.actor }}
+          Commit: ${{ github.sha }}
+          Run: ${{ github.run_id }}"
+            git push
+          fi
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Agents:" >> $GITHUB_STEP_SUMMARY
+          for agent_dir in ${{ steps.targets.outputs.agents }}; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "- $agent_name" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "::notice::Production deployment completed successfully!"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Production deployment failed! Immediate attention required."

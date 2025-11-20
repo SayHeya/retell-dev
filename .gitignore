@@ -1,5 +1,11 @@
-templates/
+# User agent templates (generated)
+/templates/
+
+# Agent configurations (user data)
 agents/
+
+# Don't ignore source templates
+!src/templates/
 
 # Dependencies
 node_modules/

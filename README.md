@@ -92,6 +92,22 @@ retell status <agent-name> [-w staging|production]
 
 # List all agents in workspace
 retell list [-w staging|production]
+
+# Audit for duplicates and orphaned resources
+retell audit [-w staging|production] [--fix]
+
+# Check for configuration conflicts
+retell diff <agent-name> [-w staging|production] [--resolve use-local|use-remote]
+```
+
+### GitOps Workflows
+
+```bash
+# Initialize GitHub workflow templates
+retell workflows init [--force]
+
+# List available workflow templates
+retell workflows list
 ```
 
 ### Phone Number Management
@@ -299,6 +315,98 @@ retell phone update +14157774444 \
 
 **Note:** To update SIP trunk configuration (termination URI or credentials), you must delete and re-import the number.
 
+#### Audit Command
+
+The `audit` command detects issues with your agent configurations, including duplicates and orphaned resources.
+
+**Usage:**
+```bash
+retell audit [-w staging|production] [--fix]
+```
+
+**What it detects:**
+- **Duplicate Agent IDs**: Multiple local directories pointing to the same workspace agent
+- **Duplicate Agent Names**: Same `agent_name` in multiple local configs
+- **Stale Metadata**: Local agents with metadata pointing to deleted workspace agents
+- **Untracked Agents**: Workspace agents not tracked locally
+- **Orphaned LLMs**: LLM configurations not attached to any agent
+
+**Examples:**
+```bash
+# Audit against staging workspace
+retell audit -w staging
+
+# Audit against production
+retell audit -w production
+
+# Audit and delete orphaned LLMs
+retell audit -w staging --fix
+```
+
+**Output:**
+```
+Auditing agents against staging workspace...
+
+⚠ Duplicate Agent Names (same agent_name in multiple local configs):
+
+┌────────────────────────────┬──────────────────────────────────────┐
+│ Agent Name                 │ Local Directories                    │
+├────────────────────────────┼──────────────────────────────────────┤
+│ Customer Service Agent     │ customer-service, customer-service-1 │
+└────────────────────────────┴──────────────────────────────────────┘
+
+🗑 Orphaned LLMs in staging (not attached to any agent):
+
+┌──────────────────────────────────┐
+│ LLM ID                           │
+├──────────────────────────────────┤
+│ llm_abc123...                    │
+└──────────────────────────────────┘
+
+Fix: Run with --fix to delete orphaned LLMs.
+
+⚠ Found 3 issue(s)
+```
+
+#### GitOps Workflows Command
+
+The `workflows` command helps you set up GitHub Actions for GitOps-based configuration management.
+
+**Usage:**
+```bash
+# Initialize workflow templates
+retell workflows init [--force]
+
+# List available templates
+retell workflows list
+```
+
+**What it creates:**
+- `retell-validate.yml` - PR validation and conflict checking
+- `retell-deploy-staging.yml` - Deploy to staging on merge
+- `retell-deploy-production.yml` - Deploy to production on merge
+- `retell-drift-detection.yml` - Scheduled drift detection
+
+**Branch Strategy:**
+```
+development/*  →  staging branch  →  production branch
+    (work)         (testing)           (live)
+```
+
+**Example:**
+```bash
+# Initialize workflows in your project
+retell workflows init
+
+# Output:
+# ✅ Created: .github/workflows/retell-validate.yml
+# ✅ Created: .github/workflows/retell-deploy-staging.yml
+# ✅ Created: .github/workflows/retell-deploy-production.yml
+# ✅ Created: .github/workflows/retell-drift-detection.yml
+```
+
+See [WORKFLOWS_COMMAND.md](./docs/WORKFLOWS_COMMAND.md) and [GITOPS_METHODOLOGY.md](./docs/GITOPS_METHODOLOGY.md) for detailed documentation.
+
 **Phone Delete** - Remove number:
 ```bash
 # Delete with confirmation
@@ -451,9 +559,24 @@ npm run test:ci
 
 ## Documentation
 
+### Core Documentation
 - [Technical Specification](./docs/TECHNICAL_SPECIFICATION.md) - Detailed technical documentation
-- [Workspace Validation](./WORKSPACE_VALIDATION.md) - Workspace configuration guide
-- [Workspace Limit Testing](./WORKSPACE_LIMIT_TEST_RESULTS.md) - Testing results for workspace limits
+- [Specification](./docs/SPECIFICATION.md) - CLI command reference
+
+### GitOps & Workflows
+- [GitOps Methodology](./docs/GITOPS_METHODOLOGY.md) - GitOps approach for configuration management
+- [Workflows Command](./docs/WORKFLOWS_COMMAND.md) - GitHub Actions workflow setup
+- [Conflict Resolution](./docs/CONFLICT_RESOLUTION.md) - Handling drift and conflicts
+- [Diff Command](./docs/DIFF_COMMAND.md) - Configuration diff and conflict detection
+
+### Phone & Twilio
+- [Twilio Retell Workflow](./docs/TWILIO_RETELL_WORKFLOW.md) - Twilio integration guide
+- [Phone Number Directory](./docs/PHONE_NUMBER_DIRECTORY.md) - Phone number management
+- [Twilio CLI](./docs/TWILIO_CLI.md) - Twilio CLI integration
+
+### Other
+- [Agent Delete Command](./docs/AGENT_DELETE_COMMAND.md) - Agent deletion guide
+- [Changelog](./docs/CHANGELOG.md) - Version history
 - [Scripts Documentation](./scripts/README.md) - Utility scripts documentation
 
 ## Workspace Limits

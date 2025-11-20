@@ -1,0 +1,115 @@
+# Retell CLI - Release Workflow
+# This workflow publishes the package to npm when a release is created
+# Exported by: retell workflows init
+
+name: Release
+
+on:
+  release:
+    types: [published]
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (skip npm publish)'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  release:
+    name: Build and Publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Verify build output
+        run: |
+          echo "Checking build output..."
+
+          # Check dist directory exists
+          if [ ! -d "dist" ]; then
+            echo "::error::dist directory not found"
+            exit 1
+          fi
+
+          # Check main entry point
+          if [ ! -f "dist/index.js" ]; then
+            echo "::error::dist/index.js not found"
+            exit 1
+          fi
+
+          # Check CLI entry point
+          if [ ! -f "dist/cli/index.js" ]; then
+            echo "::error::dist/cli/index.js not found"
+            exit 1
+          fi
+
+          # Check templates were copied
+          if [ ! -d "dist/templates/workflows" ]; then
+            echo "::error::dist/templates/workflows not found"
+            exit 1
+          fi
+
+          # List workflow templates
+          echo "Workflow templates included:"
+          ls -la dist/templates/workflows/
+
+          echo "✓ Build verification passed"
+
+      - name: Check package contents
+        run: |
+          echo "Files that will be published:"
+          npm pack --dry-run 2>&1
+
+      - name: Publish to npm
+        if: ${{ github.event_name == 'release' || github.event.inputs.dry_run != 'true' }}
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Dry run publish
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "Dry run - skipping npm publish"
+          npm publish --dry-run
+
+      - name: Release Summary
+        if: always()
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "**Version:** ${{ github.event.release.tag_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Release:** ${{ github.event.release.name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Manual trigger** (dry run: ${{ github.event.inputs.dry_run }})" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Published Files:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          npm pack --dry-run 2>&1 | tail -20 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

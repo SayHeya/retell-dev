@@ -180,6 +180,37 @@ export class RetellClient {
   }
 
   /**
+   * List all LLMs in the workspace.
+   *
+   * @returns Result containing list of LLMs or error
+   */
+  async listLlms(): Promise<Result<unknown[], Error>> {
+    try {
+      const response = await this.client.llm.list();
+      return Ok(response as unknown[]);
+    } catch (error) {
+      return Err(error instanceof Error ? error : new Error('Failed to list LLMs from Retell'));
+    }
+  }
+
+  /**
+   * Delete an LLM from Retell.
+   *
+   * @param llmId - LLM ID
+   * @returns Result indicating success or error
+   */
+  async deleteLlm(llmId: LlmId): Promise<Result<void, Error>> {
+    try {
+      await this.client.llm.delete(llmId);
+      return Ok(undefined);
+    } catch (error) {
+      return Err(
+        error instanceof Error ? error : new Error(`Failed to delete LLM ${llmId} from Retell`)
+      );
+    }
+  }
+
+  /**
    * Create a new knowledge base in Retell.
    *
    * @param name - Knowledge base name

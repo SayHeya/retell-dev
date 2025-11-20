@@ -1,0 +1,294 @@
+# Retell CLI - PR Validation & Conflict Check Workflow
+# This workflow validates configs and checks for conflicts with target workspace
+# Exported by: retell workflows init
+
+name: Validate & Check Conflicts
+
+on:
+  pull_request:
+    branches: [staging, production]
+    paths:
+      - 'agents/**'
+      - 'prompts/**'
+
+jobs:
+  validate-and-check-conflicts:
+    name: Validate & Check Conflicts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need full history to detect changed files
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Retell CLI
+        run: npm install -g retell-cli
+
+      - name: Generate workspace config
+        env:
+          RETELL_STAGING_API_KEY: ${{ secrets.RETELL_STAGING_API_KEY }}
+          RETELL_PRODUCTION_API_KEY: ${{ secrets.RETELL_PRODUCTION_API_KEY }}
+        run: |
+          cat > workspaces.json << EOF
+          {
+            "staging": {
+              "api_key": "$RETELL_STAGING_API_KEY",
+              "name": "Staging Workspace",
+              "base_url": "https://api.retellai.com"
+            },
+            "production": {
+              "api_key": "$RETELL_PRODUCTION_API_KEY",
+              "name": "Production Workspace",
+              "base_url": "https://api.retellai.com"
+            }
+          }
+          EOF
+
+      - name: Determine target workspace
+        id: workspace
+        run: |
+          if [ "${{ github.base_ref }}" = "staging" ]; then
+            echo "target=staging" >> $GITHUB_OUTPUT
+            echo "Target workspace: staging"
+          elif [ "${{ github.base_ref }}" = "production" ]; then
+            echo "target=production" >> $GITHUB_OUTPUT
+            echo "Target workspace: production"
+          else
+            echo "::error::Unknown target branch: ${{ github.base_ref }}"
+            exit 1
+          fi
+
+      - name: Detect changed agents
+        id: changed
+        run: |
+          # Get list of changed agent directories
+          changed_agents=""
+
+          # Get all changed files in agents/ directory
+          changed_files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- agents/)
+
+          # Extract unique agent directories
+          for file in $changed_files; do
+            # Extract agent name from path like agents/my-agent/agent.json
+            agent_dir=$(echo "$file" | cut -d'/' -f1-2)
+            if [ -d "$agent_dir" ] && [[ ! "$changed_agents" =~ "$agent_dir" ]]; then
+              changed_agents="$changed_agents $agent_dir"
+            fi
+          done
+
+          # Also check if any prompts changed (affects all agents using them)
+          changed_prompts=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- prompts/)
+          if [ -n "$changed_prompts" ]; then
+            echo "Prompts changed - will check all agents"
+            changed_agents=$(ls -d agents/*/ 2>/dev/null | tr '\n' ' ')
+          fi
+
+          echo "Changed agents: $changed_agents"
+          echo "agents=$changed_agents" >> $GITHUB_OUTPUT
+
+          if [ -z "$changed_agents" ]; then
+            echo "No agent changes detected"
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate changed agent configurations
+        if: steps.changed.outputs.has_changes == 'true'
+        run: |
+          echo "Validating changed agent configurations..."
+          for agent_dir in ${{ steps.changed.outputs.agents }}; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "Validating: $agent_name"
+              retell validate "$agent_dir" || exit 1
+            fi
+          done
+
+      - name: Check for conflicts with target workspace
+        id: conflicts
+        if: steps.changed.outputs.has_changes == 'true'
+        run: |
+          echo "Checking for conflicts with ${{ steps.workspace.outputs.target }} workspace..."
+          conflicts_found=false
+          conflict_report=""
+
+          for agent_dir in ${{ steps.changed.outputs.agents }}; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "=========================================="
+              echo "Checking conflicts for: $agent_name"
+              echo "=========================================="
+
+              # Run diff command
+              diff_output=$(retell diff "$agent_dir" -w ${{ steps.workspace.outputs.target }} 2>&1) || true
+
+              # Check if conflicts were detected
+              if echo "$diff_output" | grep -q "Conflicts Detected\|has_conflicts.*true"; then
+                conflicts_found=true
+                conflict_report="${conflict_report}\n### ${agent_name}\n\`\`\`\n${diff_output}\n\`\`\`\n"
+                echo "::warning::Conflicts detected for agent: $agent_name"
+              else
+                echo "No conflicts for: $agent_name"
+              fi
+              echo ""
+            fi
+          done
+
+          echo "conflicts_found=$conflicts_found" >> $GITHUB_OUTPUT
+          echo -e "$conflict_report" > conflict-report.md
+
+      - name: Post conflict report as PR comment
+        if: steps.conflicts.outputs.conflicts_found == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const conflictReport = fs.readFileSync('conflict-report.md', 'utf8');
+
+            let body = '## ⚠️ Conflicts Detected with ${{ steps.workspace.outputs.target }} Workspace\n\n';
+            body += 'The following agents have configurations on Retell that differ from this PR.\n';
+            body += 'This typically means someone modified the agent via the Retell Console.\n\n';
+            body += '### Resolution Required\n\n';
+            body += 'Before merging, you must resolve these conflicts:\n\n';
+            body += '1. **Keep your changes** (overwrite remote):\n';
+            body += '   ```bash\n';
+            body += '   retell diff <agent> -w ${{ steps.workspace.outputs.target }} --resolve use-local\n';
+            body += '   ```\n\n';
+            body += '2. **Accept remote changes** (update your PR):\n';
+            body += '   ```bash\n';
+            body += '   retell diff <agent> -w ${{ steps.workspace.outputs.target }} --resolve use-remote\n';
+            body += '   git add agents/<agent>/\n';
+            body += '   git commit -m "Pull remote changes"\n';
+            body += '   git push\n';
+            body += '   ```\n\n';
+            body += '---\n\n';
+            body += '## Conflict Details\n\n';
+            body += conflictReport;
+
+            // Find existing bot comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Conflicts Detected with')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Fail if conflicts found
+        if: steps.conflicts.outputs.conflicts_found == 'true'
+        run: |
+          echo "::error::Conflicts detected with ${{ steps.workspace.outputs.target }} workspace. Please resolve before merging."
+          exit 1
+
+      - name: Dry-run push
+        if: steps.changed.outputs.has_changes == 'true' && steps.conflicts.outputs.conflicts_found != 'true'
+        run: |
+          echo "Performing dry-run push to ${{ steps.workspace.outputs.target }}..."
+          for agent_dir in ${{ steps.changed.outputs.agents }}; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "Dry-run for: $agent_name"
+              retell push "$agent_dir" -w ${{ steps.workspace.outputs.target }} --dry-run || exit 1
+            fi
+          done
+
+      - name: Post success comment
+        if: steps.changed.outputs.has_changes == 'true' && steps.conflicts.outputs.conflicts_found != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const agents = '${{ steps.changed.outputs.agents }}'.trim().split(' ').filter(a => a);
+
+            let body = '## ✅ Validation Passed\n\n';
+            body += `Ready to deploy to **${{ steps.workspace.outputs.target }}** workspace.\n\n`;
+            body += '### Agents to be deployed:\n';
+            agents.forEach(agent => {
+              const name = agent.split('/').pop();
+              body += `- ${name}\n`;
+            });
+            body += '\n';
+            body += 'Merge this PR to trigger deployment.';
+
+            // Find existing bot comment or create new one
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              (c.body.includes('Validation Passed') || c.body.includes('Conflicts Detected'))
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Branch:** ${{ github.base_ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Workspace:** ${{ steps.workspace.outputs.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.changed.outputs.has_changes }}" = "true" ]; then
+            echo "### Changed Agents:" >> $GITHUB_STEP_SUMMARY
+            for agent_dir in ${{ steps.changed.outputs.agents }}; do
+              agent_name=$(basename "$agent_dir")
+              echo "- $agent_name" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "No agent changes detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.conflicts.outputs.conflicts_found }}" = "true" ]; then
+            echo "### Status: ❌ Conflicts Found" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Status: ✅ Ready to Merge" >> $GITHUB_STEP_SUMMARY
+          fi

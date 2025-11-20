@@ -40,6 +40,8 @@ import { updateCommand } from './commands/update';
 import { deleteCommand } from './commands/delete';
 import { diffCommand } from './commands/diff';
 import { phoneCommand } from './commands/phone';
+import { workflowsCommand } from './commands/workflows';
+import { auditCommand } from './commands/audit';
 
 const program = new Command();
 
@@ -65,6 +67,8 @@ program.addCommand(deleteCommand);
 program.addCommand(diffCommand);
 program.addCommand(phoneCommand);
 program.addCommand(workspaceCommand);
+program.addCommand(workflowsCommand);
+program.addCommand(auditCommand);
 
 // Parse arguments
 program.parse();

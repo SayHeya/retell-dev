@@ -1,0 +1,224 @@
+# Retell CLI - Drift Detection Workflow
+# This workflow detects configuration drift (changes made outside of Git)
+# Exported by: retell workflows init
+
+name: Drift Detection
+
+on:
+  # Run every 6 hours
+  schedule:
+    - cron: '0 */6 * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      workspace:
+        description: 'Workspace to check'
+        required: false
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+          - both
+      create_issue:
+        description: 'Create GitHub issue on drift detection'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  detect-drift:
+    name: Detect Configuration Drift
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Retell CLI
+        run: npm install -g retell-cli
+
+      - name: Generate workspace config
+        env:
+          RETELL_STAGING_API_KEY: ${{ secrets.RETELL_STAGING_API_KEY }}
+          RETELL_PRODUCTION_API_KEY: ${{ secrets.RETELL_PRODUCTION_API_KEY }}
+        run: |
+          cat > workspaces.json << EOF
+          {
+            "staging": {
+              "api_key": "$RETELL_STAGING_API_KEY",
+              "name": "Staging Workspace",
+              "base_url": "https://api.retellai.com"
+            },
+            "production": {
+              "api_key": "$RETELL_PRODUCTION_API_KEY",
+              "name": "Production Workspace",
+              "base_url": "https://api.retellai.com"
+            }
+          }
+          EOF
+
+      - name: Check for drift in staging
+        id: staging-drift
+        if: ${{ github.event.inputs.workspace != 'production' }}
+        run: |
+          echo "Checking for drift in staging workspace..."
+          drift_detected=false
+          drift_report=""
+
+          for agent_dir in agents/*/; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "Checking: $agent_name"
+
+              # Run diff command and capture output
+              diff_output=$(retell diff "$agent_dir" -w staging --json 2>&1) || true
+
+              # Check if drift was detected
+              if echo "$diff_output" | grep -q '"has_conflicts": true'; then
+                drift_detected=true
+                drift_report="${drift_report}\n### ${agent_name} (staging)\n\`\`\`\n${diff_output}\n\`\`\`\n"
+                echo "::warning::Drift detected in staging for agent: $agent_name"
+              else
+                echo "In sync: $agent_name"
+              fi
+            fi
+          done
+
+          echo "drift_detected=$drift_detected" >> $GITHUB_OUTPUT
+          # Save drift report to file for later use
+          echo -e "$drift_report" > staging-drift-report.md
+
+      - name: Check for drift in production
+        id: production-drift
+        if: ${{ github.event.inputs.workspace == 'production' || github.event.inputs.workspace == 'both' || github.event_name == 'schedule' }}
+        run: |
+          echo "Checking for drift in production workspace..."
+          drift_detected=false
+          drift_report=""
+
+          for agent_dir in agents/*/; do
+            if [ -d "$agent_dir" ]; then
+              agent_name=$(basename "$agent_dir")
+              echo "Checking: $agent_name"
+
+              # Run diff command and capture output
+              diff_output=$(retell diff "$agent_dir" -w production --json 2>&1) || true
+
+              # Check if drift was detected
+              if echo "$diff_output" | grep -q '"has_conflicts": true'; then
+                drift_detected=true
+                drift_report="${drift_report}\n### ${agent_name} (production)\n\`\`\`\n${diff_output}\n\`\`\`\n"
+                echo "::warning::Drift detected in production for agent: $agent_name"
+              else
+                echo "In sync: $agent_name"
+              fi
+            fi
+          done
+
+          echo "drift_detected=$drift_detected" >> $GITHUB_OUTPUT
+          # Save drift report to file for later use
+          echo -e "$drift_report" > production-drift-report.md
+
+      - name: Create GitHub Issue for Drift
+        if: |
+          (steps.staging-drift.outputs.drift_detected == 'true' ||
+           steps.production-drift.outputs.drift_detected == 'true') &&
+          (github.event.inputs.create_issue != 'false')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let body = '## Configuration Drift Detected\n\n';
+            body += 'The following agents have configurations that differ from what is in Git.\n';
+            body += 'This typically means someone modified the agent via the Retell Console.\n\n';
+            body += '### Resolution Options\n\n';
+            body += '1. **Keep local (Git) version**: `retell push <agent> -w <workspace> --force`\n';
+            body += '2. **Accept remote changes**: `retell diff <agent> -w <workspace> --resolve use-remote`\n';
+            body += '3. **Manual merge**: Review changes and update `agent.json` accordingly\n\n';
+            body += '---\n\n';
+
+            // Read drift reports
+            try {
+              const stagingReport = fs.readFileSync('staging-drift-report.md', 'utf8');
+              if (stagingReport.trim()) {
+                body += '## Staging Workspace\n' + stagingReport + '\n';
+              }
+            } catch (e) {}
+
+            try {
+              const productionReport = fs.readFileSync('production-drift-report.md', 'utf8');
+              if (productionReport.trim()) {
+                body += '## Production Workspace\n' + productionReport + '\n';
+              }
+            } catch (e) {}
+
+            // Check for existing open drift issues
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'drift-detection'
+            });
+
+            if (issues.length > 0) {
+              // Update existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: `## Updated Drift Report\n\n${body}`
+              });
+              console.log(`Updated existing issue #${issues[0].number}`);
+            } else {
+              // Create new issue
+              const { data: issue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: 'Configuration Drift Detected',
+                body: body,
+                labels: ['drift-detection', 'needs-attention']
+              });
+              console.log(`Created issue #${issue.number}`);
+            }
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Drift Detection Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.staging-drift.outputs.drift_detected }}" = "true" ]; then
+            echo "### Staging: Drift Detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Staging: In Sync" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ steps.production-drift.outputs.drift_detected }}" = "true" ]; then
+            echo "### Production: Drift Detected" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Production: In Sync" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify on drift detection
+        if: steps.staging-drift.outputs.drift_detected == 'true' || steps.production-drift.outputs.drift_detected == 'true'
+        run: |
+          echo "::warning::Configuration drift detected! Review the created GitHub issue."
+          # Add your notification logic here
+          # Example for Slack:
+          # curl -X POST -H 'Content-type: application/json' \
+          #   --data '{"text":"Configuration drift detected in Retell agents!"}' \
+          #   ${{ secrets.SLACK_WEBHOOK_URL }}
