@@ -17,6 +17,12 @@ export const MetadataSchema = z
     last_sync: z.string().datetime().nullable(),
     config_hash: z.string().nullable(),
     retell_version: z.number().int().nonnegative().nullable(),
+    // GitOps tracking fields (optional)
+    source_commit: z.string().optional(),
+    source_branch: z.string().optional(),
+    deployed_by: z.string().optional(),
+    workflow_run_id: z.string().optional(),
+    deployed_at: z.string().optional(),
   })
   .strict();
 
