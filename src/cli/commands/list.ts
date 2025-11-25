@@ -6,7 +6,12 @@ import { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import Table from 'cli-table3';
-import { AgentController, AgentConfigLoader, MetadataManager, HashCalculator } from '@heya/retell.controllers';
+import {
+  AgentController,
+  AgentConfigLoader,
+  MetadataManager,
+  HashCalculator,
+} from '@heya/retell.controllers';
 import type { WorkspaceType } from '@heya/retell.controllers';
 import { handleError } from '../errors/cli-error-handler';
 

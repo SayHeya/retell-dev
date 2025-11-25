@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Test Migration to Controllers Package
+- **Core Tests Moved**: Migrated core logic tests from `tests/unit/core/` to `packages/controllers/`:
+  - `variable-resolver.test.ts` - Variable categorization and validation tests
+  - `agent-config-loader.test.ts` - Agent config load/save/exists tests
+  - `metadata-manager.test.ts` - Metadata read/write/update tests
+  - `agent-transformer.test.ts` - Agent transformation tests
+
+- **Test Enhancements**:
+  - Added empty content and unicode handling tests to `hash-calculator.test.ts`
+  - Added system variable extraction tests to `prompt-builder.test.ts`
+
+- **Controllers Package Tests**: 8 test suites with 113 tests (Vitest)
+- **CLI Tests**: 16 test suites with 128 tests (Jest)
+
+### Changed
+
+#### Test Infrastructure Cleanup
+- **Removed Duplicate Source Files**:
+  - Deleted `src/core/` - 9 duplicate files (now in controllers package)
+  - Deleted `src/schemas/` - 2 duplicate files
+  - Deleted `src/config/` - 1 duplicate file
+  - Deleted `src/types/` - 2 duplicate files
+
+- **Updated Test Imports**: All CLI command tests now import from `@heya/retell.controllers`:
+  - `push.test.ts`, `pull.test.ts`, `status.test.ts`, `diff.test.ts`
+  - `update.test.ts`, `init.test.ts`, `bulk-create.test.ts`
+  - `list.test.ts`, `delete.test.ts`
+  - `common.types.test.ts` - Updated to use `createError` with `RetellError`
+
+- **Fixed TS Errors**: Resolved unused variable warnings in `prompt-section-mapper.ts`
+
 #### Monorepo Architecture with @retell/module Package
 - **Package Extraction**: Core functionality extracted into `packages/module/` npm package
   - Enables reuse by CLI, API, and other tools

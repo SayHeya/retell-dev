@@ -11,9 +11,9 @@
  */
 
 import { Command } from 'commander';
-import { RetellClient } from '../../api/retell-client';
-import { WorkspaceConfigLoader } from '../../config/workspace-config';
-import type { WorkspaceType } from '../../types/agent.types';
+import { RetellClientService, WorkspaceConfigService } from '@heya/retell.controllers';
+import type { WorkspaceType } from '@heya/retell.controllers';
+import { handleError } from '../errors/cli-error-handler';
 
 // ============================================================================
 // Main phone command group
@@ -41,11 +41,7 @@ phoneCommand
     try {
       await executeCreatePhone(options);
     } catch (error) {
-      console.error(
-        'Failed to create phone number:',
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -71,11 +67,7 @@ phoneCommand
     try {
       await executeImportPhone(phoneNumber, terminationUri, options);
     } catch (error) {
-      console.error(
-        'Failed to import phone number:',
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -92,11 +84,7 @@ phoneCommand
     try {
       await executeListPhones(options);
     } catch (error) {
-      console.error(
-        'Failed to list phone numbers:',
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -114,8 +102,7 @@ phoneCommand
     try {
       await executeGetPhone(phoneNumber, options);
     } catch (error) {
-      console.error('Failed to get phone number:', error instanceof Error ? error.message : error);
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -138,11 +125,7 @@ phoneCommand
     try {
       await executeUpdatePhone(phoneNumber, options);
     } catch (error) {
-      console.error(
-        'Failed to update phone number:',
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -160,11 +143,7 @@ phoneCommand
     try {
       await executeDeletePhone(phoneNumber, options);
     } catch (error) {
-      console.error(
-        'Failed to delete phone number:',
-        error instanceof Error ? error.message : error
-      );
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -232,12 +211,12 @@ async function executeCreatePhone(options: CreatePhoneOptions): Promise<void> {
   console.log(`\nCreating phone number in ${options.workspace}...\n`);
 
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // Build request payload
   const createRequest: Record<string, unknown> = {
@@ -299,12 +278,12 @@ async function executeImportPhone(
   console.log(`\nImporting phone number ${phoneNumber} to ${options.workspace}...\n`);
 
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // Build request payload
   const importRequest: Record<string, unknown> = {
@@ -374,12 +353,12 @@ async function executeImportPhone(
  */
 async function executeListPhones(options: ListPhoneOptions): Promise<void> {
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // List phone numbers
   const result = await client.listPhoneNumbers();
@@ -424,12 +403,12 @@ async function executeListPhones(options: ListPhoneOptions): Promise<void> {
  */
 async function executeGetPhone(phoneNumber: string, options: GetPhoneOptions): Promise<void> {
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // Get phone number
   const result = await client.getPhoneNumber(phoneNumber);
@@ -483,12 +462,12 @@ async function executeUpdatePhone(phoneNumber: string, options: UpdatePhoneOptio
   console.log(`\nUpdating phone number ${phoneNumber} in ${options.workspace}...\n`);
 
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // Build update payload
   const updateRequest: Record<string, unknown> = {};
@@ -560,12 +539,12 @@ async function executeDeletePhone(phoneNumber: string, options: DeletePhoneOptio
   console.log(`\nDeleting phone number ${phoneNumber} from ${options.workspace}...\n`);
 
   // Load workspace config
-  const workspaceConfigResult = await WorkspaceConfigLoader.getWorkspace(options.workspace);
+  const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
     throw workspaceConfigResult.error;
   }
   const workspaceConfig = workspaceConfigResult.value;
-  const client = new RetellClient(workspaceConfig);
+  const client = new RetellClientService(workspaceConfig);
 
   // Delete phone number
   const result = await client.deletePhoneNumber(phoneNumber);

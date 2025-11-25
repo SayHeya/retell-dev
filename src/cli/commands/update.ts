@@ -8,8 +8,8 @@
 import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs/promises';
-import { AgentConfigLoader } from '../../core/agent-config-loader';
-import { AgentConfigSchema } from '../../schemas/agent.schema';
+import { AgentConfigLoader, AgentConfigSchema } from '@heya/retell.controllers';
+import { handleError } from '../errors/cli-error-handler';
 
 export const updateCommand = new Command('update')
   .description('Update agent configuration fields')
@@ -25,8 +25,7 @@ export const updateCommand = new Command('update')
     try {
       await executeUpdate(agentName, field, value, options);
     } catch (error) {
-      console.error('Update failed:', error instanceof Error ? error.message : error);
-      process.exit(1);
+      handleError(error);
     }
   });
 

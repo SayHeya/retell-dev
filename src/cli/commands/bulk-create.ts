@@ -5,8 +5,9 @@
 import { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { AgentConfig } from '../../types/agent.types';
-import { WorkspaceConfigLoader } from '../../config/workspace-config';
+import type { AgentConfig } from '@heya/retell.controllers';
+import { WorkspaceConfigService } from '@heya/retell.controllers';
+import { handleError } from '../errors/cli-error-handler';
 
 // Dynamic import for inquirer (ESM module)
 type InquirerModule = typeof import('inquirer');
@@ -31,8 +32,7 @@ export const bulkCreateCommand = new Command('bulk-create')
     try {
       await executeBulkCreate(options);
     } catch (error) {
-      console.error('Bulk create failed:', error instanceof Error ? error.message : error);
-      process.exit(1);
+      handleError(error);
     }
   });
 
@@ -58,7 +58,7 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
   // Validate workspace configuration (unless skipped)
   if (!options.skipValidation) {
     console.log('Validating workspace configuration...');
-    const workspaceExists = await WorkspaceConfigLoader.exists();
+    const workspaceExists = await WorkspaceConfigService.exists();
     if (workspaceExists !== true) {
       throw new Error(
         "workspaces.json not found. Please run 'retell workspace init' first.\n" +
@@ -67,7 +67,7 @@ async function executeBulkCreate(options: BulkCreateOptions): Promise<void> {
     }
 
     // Validate it can be loaded
-    const configResult = await WorkspaceConfigLoader.load();
+    const configResult = await WorkspaceConfigService.load();
     if (configResult.success !== true) {
       throw new Error(
         `Invalid workspace configuration: ${configResult.error.message}\n` +

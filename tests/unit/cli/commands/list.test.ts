@@ -6,13 +6,15 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
-import { AgentConfigLoader } from '@core/agent-config-loader';
-import { MetadataManager } from '@core/metadata-manager';
-import { HashCalculator } from '@core/hash-calculator';
+import {
+  AgentConfigLoader,
+  MetadataManager,
+  HashCalculator,
+  type AgentConfig,
+} from '@heya/retell.controllers';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import type { AgentConfig } from '../../../../src/types/agent.types';
 
 describe('List Command Dependencies', () => {
   let tempDir: string;

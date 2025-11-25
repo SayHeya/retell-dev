@@ -3,11 +3,10 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
-import { AgentConfigLoader } from '@core/agent-config-loader';
+import { AgentConfigLoader, type AgentConfig } from '@heya/retell.controllers';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
-import type { AgentConfig } from '../../../../src/types/agent.types';
 
 describe('Update Command Dependencies', () => {
   let tempDir: string;

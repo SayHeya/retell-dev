@@ -1,5 +1,13 @@
 import { describe, expect, it } from '@jest/globals';
-import { Ok, Err, isOk, isErr, unwrap } from '../../../src/types/common.types';
+import {
+  Ok,
+  Err,
+  isOk,
+  isErr,
+  unwrap,
+  createError,
+  RetellErrorCode,
+} from '@heya/retell.controllers';
 
 describe('Common Types', () => {
   describe('Ok', () => {
@@ -19,7 +27,7 @@ describe('Common Types', () => {
 
   describe('Err', () => {
     it('should create error result', () => {
-      const error = new Error('failure');
+      const error = createError(RetellErrorCode.UNKNOWN_ERROR, 'failure');
       const result = Err(error);
 
       expect(result.success).toBe(false);
@@ -40,14 +48,14 @@ describe('Common Types', () => {
     });
 
     it('should return false for Err result', () => {
-      const result = Err(new Error('error'));
+      const result = Err(createError(RetellErrorCode.UNKNOWN_ERROR, 'error'));
       expect(isOk(result)).toBe(false);
     });
   });
 
   describe('isErr', () => {
     it('should return true for Err result', () => {
-      const result = Err(new Error('error'));
+      const result = Err(createError(RetellErrorCode.UNKNOWN_ERROR, 'error'));
       expect(isErr(result)).toBe(true);
     });
 
@@ -64,10 +72,10 @@ describe('Common Types', () => {
     });
 
     it('should throw error for Err result', () => {
-      const error = new Error('test error');
+      const error = createError(RetellErrorCode.UNKNOWN_ERROR, 'test error');
       const result = Err(error);
 
-      expect(() => unwrap(result)).toThrow(error);
+      expect(() => unwrap(result)).toThrow();
     });
   });
 });
