@@ -89,7 +89,7 @@ async function executePull(agentName: string, options: PullOptions): Promise<voi
     try {
       await fs.access(agentJsonPath);
       const existingContent = await fs.readFile(agentJsonPath, 'utf-8');
-      const existingConfig = JSON.parse(existingContent);
+      const existingConfig = JSON.parse(existingContent) as AgentConfig;
       const existingHashResult = HashCalculator.calculateAgentHash(existingConfig);
 
       if (existingHashResult.success && metadata.config_hash) {
