@@ -44,12 +44,18 @@ async function executeWorkspaceList(): Promise<void> {
 
   for (const ws of workspaces) {
     const name = ws.name.padEnd(33);
-    const type = ws.type.padEnd(11);
     const baseUrl = ws.baseUrl.substring(0, 29).padEnd(29);
     const hasKey = ws.hasApiKey ? '✓' : '✗';
-    const indexStr = ws.index !== undefined ? ` [${ws.index}]` : '';
 
-    console.log(`│ ${name} │ ${type}${indexStr.padEnd(11 - type.length)} │ ${baseUrl} │ ${hasKey.padEnd(9)} │`);
+    // Show workspace key for multi-production, or type for single/staging
+    let typeDisplay: string;
+    if (ws.key) {
+      typeDisplay = ws.key.padEnd(11);
+    } else {
+      typeDisplay = ws.type.padEnd(11);
+    }
+
+    console.log(`│ ${name} │ ${typeDisplay} │ ${baseUrl} │ ${hasKey.padEnd(9)} │`);
   }
 
   console.log('└───────────────────────────────────┴─────────────┴───────────────────────────────┴───────────┘');
