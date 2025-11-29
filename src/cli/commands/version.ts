@@ -157,7 +157,7 @@ async function executeRollback(
     throw result.error;
   }
 
-  const { agentId, llmId, previousVersion, restoredToVersion, newVersion, dryRun } = result.value;
+  const { agentId, llmId, previousVersion, restoredToVersion, newVersion, dryRun, responseEngineSkipped } = result.value;
 
   if (dryRun) {
     console.log(`Dry run - no changes made.`);
@@ -177,6 +177,11 @@ async function executeRollback(
     console.log(`  Restored to version: ${restoredToVersion}`);
     if (newVersion !== null) {
       console.log(`  New published version: ${newVersion}`);
+    }
+    if (responseEngineSkipped) {
+      console.log(`\n⚠ Note: response_engine was not restored (Retell API does not allow`);
+      console.log(`  updating response_engine on published agents). The LLM configuration`);
+      console.log(`  was still restored if present.`);
     }
   }
 }
