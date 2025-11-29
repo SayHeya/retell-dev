@@ -122,7 +122,11 @@ async function executePull(agentName: string, options: PullOptions): Promise<voi
   console.log(`✓ Saved agent config to ${agentJsonPath}`);
 
   // 9. Update metadata with new hash
-  const newHashResult = HashCalculator.calculateAgentHash(localConfig as AgentConfig);
+  // Important: Read the file back and parse it to compute hash consistently
+  // This ensures the stored hash matches what status/diff will compute later
+  const savedContent = await fs.readFile(agentJsonPath, 'utf-8');
+  const savedConfig = JSON.parse(savedContent) as AgentConfig;
+  const newHashResult = HashCalculator.calculateAgentHash(savedConfig);
   if (newHashResult.success) {
     await MetadataManager.update(agentPath, options.workspace, {
       config_hash: newHashResult.value,

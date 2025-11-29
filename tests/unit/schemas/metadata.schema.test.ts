@@ -53,9 +53,9 @@ describe('MetadataSchema', () => {
   });
 
   describe('invalid metadata', () => {
-    it('should reject invalid workspace type', () => {
+    it('should reject empty workspace string', () => {
       const metadata = {
-        workspace: 'development',
+        workspace: '', // Empty string should be rejected
         agent_id: null,
         llm_id: null,
         kb_id: null,
@@ -66,6 +66,21 @@ describe('MetadataSchema', () => {
 
       const result = MetadataSchema.safeParse(metadata);
       expect(result.success).toBe(false);
+    });
+
+    it('should accept named production workspace', () => {
+      const metadata = {
+        workspace: 'prod-us-east', // Named workspace for multi-production mode
+        agent_id: 'agent_123',
+        llm_id: 'llm_456',
+        kb_id: null,
+        last_sync: '2025-11-14T10:30:00.000Z',
+        config_hash: 'sha256:abc123',
+        retell_version: 1,
+      };
+
+      const result = MetadataSchema.safeParse(metadata);
+      expect(result.success).toBe(true);
     });
 
     it('should reject missing required fields', () => {
