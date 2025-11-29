@@ -21,9 +21,9 @@ This document outlines the technical implementation details for the Retell CLI, 
 The project uses a **monorepo structure** with npm workspaces to separate the reusable core functionality from the CLI interface:
 
 ```
-retell-dev/
+retell-cli/
 ├── packages/
-│   └── module/                    # @retell/module - reusable controllers
+│   └── controllers/               # @heya/retell.controllers - reusable controllers
 │       ├── src/
 │       │   ├── controllers/       # Business logic orchestration
 │       │   ├── services/          # External service integrations
@@ -45,26 +45,32 @@ This architecture enables:
 ## Project Structure
 
 ```
-retell-dev/
+retell-cli/
 ├── packages/
-│   └── module/                # @retell/module package
+│   └── controllers/           # @heya/retell.controllers package
 │       ├── src/
 │       │   ├── controllers/   # Business orchestration layer
 │       │   │   ├── agent.controller.ts      # push/pull/list/delete
-│       │   │   └── workspace.controller.ts  # init/list workspaces
+│       │   │   ├── workspace.controller.ts  # init/list workspaces
+│       │   │   └── version.controller.ts    # version history/publish/rollback
 │       │   ├── services/      # External service wrappers
 │       │   │   ├── retell-client.service.ts # Retell API client
 │       │   │   └── workspace-config.service.ts
 │       │   ├── core/          # Core business logic
 │       │   │   ├── agent-config-loader.ts
 │       │   │   ├── agent-transformer.ts
+│       │   │   ├── conflict-detector.ts
+│       │   │   ├── conflict-resolver.ts
 │       │   │   ├── hash-calculator.ts
 │       │   │   ├── metadata-manager.ts
 │       │   │   ├── prompt-builder.ts
+│       │   │   ├── prompt-section-mapper.ts
+│       │   │   ├── retell-config-hasher.ts
 │       │   │   └── variable-resolver.ts
 │       │   ├── types/         # TypeScript types
 │       │   │   ├── agent.types.ts
 │       │   │   ├── common.types.ts
+│       │   │   ├── version.types.ts
 │       │   │   └── workspace.types.ts
 │       │   ├── schemas/       # Zod schemas
 │       │   │   ├── agent.schema.ts
@@ -88,46 +94,35 @@ retell-dev/
 │   │   └── index.ts           # CLI entry point
 │   └── index.ts               # Package entry point
 ├── tests/
-│   ├── unit/                  # Unit tests
-│   │   ├── core/
-│   │   │   ├── prompt/
-│   │   │   │   ├── PromptBuilder.test.ts
-│   │   │   │   ├── VariableResolver.test.ts
-│   │   │   │   └── SectionLoader.test.ts
-│   │   │   ├── agent/
-│   │   │   │   ├── AgentValidator.test.ts
-│   │   │   │   └── AgentTransformer.test.ts
-│   │   │   └── sync/
-│   │   │       ├── HashCalculator.test.ts
-│   │   │       └── DiffCalculator.test.ts
-│   │   └── utils/
-│   │       ├── logger.test.ts
-│   │       └── validation.test.ts
-│   ├── integration/           # Integration tests
-│   │   ├── commands/
-│   │   │   ├── workspace.integration.test.ts
-│   │   │   ├── push.integration.test.ts
-│   │   │   ├── pull.integration.test.ts
-│   │   │   └── release.integration.test.ts
-│   │   └── api/
-│   │       └── RetellClient.integration.test.ts
-│   ├── e2e/                   # End-to-end tests
-│   │   ├── full-workflow.e2e.test.ts
-│   │   ├── prompt-composition.e2e.test.ts
-│   │   └── release-workflow.e2e.test.ts
-│   ├── fixtures/              # Test data
-│   │   ├── agents/
-│   │   │   ├── valid-agent.json
-│   │   │   ├── invalid-agent.json
-│   │   │   └── complex-agent.json
-│   │   ├── prompts/
-│   │   │   └── sample-sections/
-│   │   └── workspaces/
-│   │       └── test-workspace.json
-│   └── helpers/               # Test utilities
-│       ├── mockRetellApi.ts
-│       ├── testFileSystem.ts
-│       └── fixtures.ts
+│   ├── setup.ts               # Jest setup
+│   └── unit/                  # Unit tests
+│       ├── cli/
+│       │   └── commands/      # CLI command tests
+│       │       ├── push.test.ts
+│       │       ├── pull.test.ts
+│       │       ├── status.test.ts
+│       │       ├── diff.test.ts
+│       │       ├── list.test.ts
+│       │       ├── delete.test.ts
+│       │       ├── init.test.ts
+│       │       ├── update.test.ts
+│       │       ├── sync.test.ts
+│       │       ├── version.test.ts
+│       │       ├── bulk-create.test.ts
+│       │       ├── phone.test.ts
+│       │       ├── audit.test.ts
+│       │       └── workspace-init.test.ts
+│       ├── config/
+│       │   └── workspace-config.test.ts
+│       ├── controllers/
+│       │   └── version.controller.test.ts
+│       ├── core/
+│       │   └── conflict-detector-version.test.ts
+│       ├── schemas/
+│       │   ├── agent.schema.test.ts
+│       │   └── metadata.schema.test.ts
+│       └── types/
+│           └── common.types.test.ts
 ├── bin/
 │   └── retell.ts              # Executable entry point
 ├── docs/
@@ -478,10 +473,10 @@ The error handling system uses a layered approach:
 2. **CLI Layer**: Maps `RetellError` to user-friendly output with hints
 3. **API Layer**: Maps `RetellError` to HTTP status codes and JSON responses
 
-### RetellError (packages/module/)
+### RetellError (packages/controllers/)
 
 ```typescript
-// packages/module/src/errors/retell-error.ts
+// packages/controllers/src/errors/retell-error.ts
 
 export interface RetellError {
   code: RetellErrorCode;          // Programmatic error code
@@ -520,7 +515,7 @@ export const RetellErrorCode = {
 ```typescript
 // src/cli/errors/cli-error-handler.ts
 
-import type { RetellError } from '@retell/module';
+import type { RetellError } from '@heya/retell.controllers';
 
 export class CLIError extends Error {
   readonly exitCode: number;
@@ -567,7 +562,7 @@ export function handleRetellError(error: RetellError): never {
 Controllers return `Result<T, RetellError>`:
 
 ```typescript
-// packages/module/src/controllers/agent.controller.ts
+// packages/controllers/src/controllers/agent.controller.ts
 
 export class AgentController {
   async push(agentName: string, options: PushOptions): Promise<Result<PushResult, RetellError>> {
@@ -609,7 +604,7 @@ export class AgentController {
 ```typescript
 // src/cli/commands/push.ts
 
-import { AgentController } from '@retell/module';
+import { AgentController } from '@heya/retell.controllers';
 import { handleRetellError } from '../errors/cli-error-handler';
 
 export const pushCommand = new Command('push')

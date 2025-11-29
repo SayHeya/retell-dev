@@ -40,8 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Fixed TS Errors**: Resolved unused variable warnings in `prompt-section-mapper.ts`
 
-#### Monorepo Architecture with @retell/module Package
-- **Package Extraction**: Core functionality extracted into `packages/module/` npm package
+#### Monorepo Architecture with @heya/retell.controllers Package
+- **Package Extraction**: Core functionality extracted into `packages/controllers/` npm package
   - Enables reuse by CLI, API, and other tools
   - Controllers orchestrate business operations (AgentController, WorkspaceController)
   - Services wrap external integrations (RetellClientService, WorkspaceConfigService)
@@ -66,12 +66,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Project Structure**: Now uses npm workspaces monorepo pattern
-  - `packages/module/` contains reusable core functionality
+  - `packages/controllers/` contains reusable core functionality
   - `src/cli/` contains CLI-specific code (thin wrappers)
   - Dependencies managed through workspace protocol
 
-- **Import Paths**: Core types and modules now imported from `@retell/module`
-  - `import { AgentController, WorkspaceType } from '@retell/module'`
+- **Import Paths**: Core types and modules now imported from `@heya/retell.controllers`
+  - `import { AgentController, WorkspaceType } from '@heya/retell.controllers'`
 
 - **Build Process**: Module must be built before CLI
   - `npm run build` now builds module first, then CLI

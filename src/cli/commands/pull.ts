@@ -215,8 +215,8 @@ function transformRetellToLocal(
     model: llm['model'],
   };
 
-  if (llm['temperature'] !== undefined) {
-    llmConfig['temperature'] = llm['temperature'];
+  if (llm['model_temperature'] !== undefined) {
+    llmConfig['temperature'] = llm['model_temperature'];
   }
   if (llm['general_prompt'] !== undefined) {
     llmConfig['general_prompt'] = llm['general_prompt'];

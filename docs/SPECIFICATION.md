@@ -110,15 +110,15 @@ This build process ensures:
 The project is structured as a **monorepo** with npm workspaces:
 
 ```
-retell-dev/
+retell-cli/
 ├── packages/
-│   └── module/           # @retell/module - reusable core functionality
+│   └── controllers/      # @heya/retell.controllers - reusable core functionality
 └── src/                  # CLI package - thin command wrappers
 ```
 
-### @retell/module Package
+### @heya/retell.controllers Package
 
-The `@retell/module` package contains all reusable business logic:
+The `@heya/retell.controllers` package contains all reusable business logic:
 
 - **Controllers**: Orchestrate business operations (AgentController, WorkspaceController)
 - **Services**: External integrations (RetellClientService, WorkspaceConfigService)
@@ -135,7 +135,7 @@ This architecture enables:
 ### Using the Module
 
 ```typescript
-import { AgentController, WorkspaceController } from '@retell/module';
+import { AgentController, WorkspaceController } from '@heya/retell.controllers';
 
 // Push an agent
 const controller = new AgentController();
@@ -1702,7 +1702,7 @@ retell release agents/customer-service --kb-only
 
 ## Error Handling
 
-The CLI uses a layered error handling system. The `@retell/module` package returns structured `RetellError` objects with error codes, which the CLI maps to user-friendly messages with hints.
+The CLI uses a layered error handling system. The `@heya/retell.controllers` package returns structured `RetellError` objects with error codes, which the CLI maps to user-friendly messages with hints.
 
 ### Error Code Categories
 
@@ -1754,10 +1754,10 @@ The CLI uses a layered error handling system. The `@retell/module` package retur
 
 ### Programmatic Error Handling
 
-When using `@retell/module` directly:
+When using `@heya/retell.controllers` directly:
 
 ```typescript
-import { AgentController } from '@retell/module';
+import { AgentController } from '@heya/retell.controllers';
 
 const controller = new AgentController();
 const result = await controller.push('my-agent', { workspace: 'staging' });

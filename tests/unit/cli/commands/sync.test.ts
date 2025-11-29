@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
-import { WorkspaceConfigService, MetadataManager, type MetadataFile } from '@heya/retell.controllers';
+import { WorkspaceController, MetadataManager, type MetadataFile } from '@heya/retell.controllers';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -60,7 +60,8 @@ describe('Sync Command Dependencies', () => {
         JSON.stringify(workspacesConfig, null, 2)
       );
 
-      const result = await WorkspaceConfigService.getAllWorkspaces();
+      const controller = new WorkspaceController();
+      const result = await controller.getAllWorkspaces();
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.value).toHaveLength(2);
@@ -101,7 +102,8 @@ describe('Sync Command Dependencies', () => {
         JSON.stringify(workspacesConfig, null, 2)
       );
 
-      const result = await WorkspaceConfigService.getAllWorkspaces();
+      const controller = new WorkspaceController();
+      const result = await controller.getAllWorkspaces();
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.value).toHaveLength(3);
@@ -427,7 +429,8 @@ describe('Sync Command Dependencies', () => {
         JSON.stringify(workspacesConfig, null, 2)
       );
 
-      const result = await WorkspaceConfigService.getMode();
+      const controller = new WorkspaceController();
+      const result = await controller.getMode();
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.value).toBe('single-production');
@@ -459,7 +462,8 @@ describe('Sync Command Dependencies', () => {
         JSON.stringify(workspacesConfig, null, 2)
       );
 
-      const result = await WorkspaceConfigService.getMode();
+      const controller = new WorkspaceController();
+      const result = await controller.getMode();
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.value).toBe('multi-production');
