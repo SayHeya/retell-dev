@@ -35,6 +35,7 @@ const envPath = findEnvFile();
 config({ path: envPath });
 
 import { Command } from 'commander';
+import { WorkspaceConfigService } from '@heya/retell.controllers';
 import { initCommand } from './commands/init';
 import { pushCommand } from './commands/push';
 import { pullCommand } from './commands/pull';
@@ -52,12 +53,45 @@ import { auditCommand } from './commands/audit';
 import { syncCommand } from './commands/sync';
 import { versionCommand } from './commands/version';
 
+/**
+ * Check CLI version against workspaces.json requirement
+ * Shows warning if version doesn't satisfy the constraint
+ */
+async function checkCliVersion(): Promise<void> {
+  const result = await WorkspaceConfigService.validateCliVersion(VERSION);
+
+  if (!result.success) {
+    // No workspaces.json or couldn't load - that's fine, skip check
+    return;
+  }
+
+  const { valid, required, current, message } = result.value;
+
+  if (!required) {
+    // No cli_version specified in workspaces.json - skip check
+    return;
+  }
+
+  if (!valid) {
+    console.error(`\x1b[33m⚠️  CLI Version Mismatch\x1b[0m`);
+    console.error(`   Required: ${required}`);
+    console.error(`   Current:  ${current}`);
+    if (message) {
+      console.error(`   ${message}`);
+    }
+    console.error(`   Run: npm install -g @heya/retell-cli@${required.replace(/^[\^~>=<]+/, '')}\n`);
+  }
+}
+
 const program = new Command();
 
 program
   .name('retell')
   .description('CLI for managing Retell AI agents across workspaces')
-  .version(VERSION);
+  .version(VERSION)
+  .hook('preAction', async () => {
+    await checkCliVersion();
+  });
 
 // Create workspace command group
 const workspaceCommand = new Command('workspace').description('Manage workspace configuration');
