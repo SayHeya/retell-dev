@@ -37,15 +37,14 @@ type AgentMetadata = {
   llm_id: string;
   kb_id: string | null;
   last_sync: string;
-  config_hash: string;
-  retell_version?: string | null;
-  workspace_id?: string;
-  workspace_name?: string;
+  config_hash: string | null;
+  retell_version: number | null;
 };
 
 type SyncResult = {
-  workspace: string;
+  workspaceKey: string;
   workspaceName: string;
+  workspaceType: string;
   agentsFound: number;
   metadataUpdated: boolean;
   agents: Array<{
@@ -108,8 +107,9 @@ async function executeSync(options: SyncOptions): Promise<void> {
       const agents = await client.agent.list();
 
       const result: SyncResult = {
-        workspace: ws.type,
+        workspaceKey: ws.key || ws.type,
         workspaceName: ws.name,
+        workspaceType: ws.type,
         agentsFound: agents.length,
         metadataUpdated: false,
         agents: agents.map((a) => ({
@@ -158,8 +158,12 @@ async function executeSync(options: SyncOptions): Promise<void> {
           }
 
           // Build metadata entry
+          // For multi-production, use the workspace key (e.g., "prod-1", "prod-2")
+          // For staging or single-production, use the type
+          const workspaceKey = ws.key || ws.type;
+
           const entry: AgentMetadata = {
-            workspace: ws.type,
+            workspace: workspaceKey,
             agent_id: matchingAgent.agent_id,
             llm_id:
               matchingAgent.response_engine !== null && matchingAgent.response_engine !== undefined && 'llm_id' in matchingAgent.response_engine
@@ -167,9 +171,8 @@ async function executeSync(options: SyncOptions): Promise<void> {
                 : '',
             kb_id: null,
             last_sync: new Date().toISOString(),
-            config_hash: '', // Would need to recalculate
-            workspace_id: ws.id,
-            workspace_name: ws.name,
+            config_hash: null, // Would need to recalculate
+            retell_version: matchingAgent.version ?? null,
           };
 
           if (options.dryRun) {
@@ -190,8 +193,9 @@ async function executeSync(options: SyncOptions): Promise<void> {
               }
 
               // Find and update or add entry for this workspace
+              // Look up by workspace key (e.g., "prod-1", "prod-2")
               const existingIdx = existingEntries.findIndex(
-                (e) => e.workspace_id === ws.id || e.workspace_name === ws.name
+                (e) => e.workspace === workspaceKey
               );
 
               if (existingIdx >= 0) {
@@ -234,8 +238,10 @@ async function executeSync(options: SyncOptions): Promise<void> {
                     existingEntries = [existingEntries];
                   }
 
+                  // Remove entry by workspace key (e.g., "prod-1")
+                  const wsKey = ws.key || ws.type;
                   const filtered = existingEntries.filter(
-                    (e) => e.workspace_id !== ws.id && e.workspace_name !== ws.name
+                    (e) => e.workspace !== wsKey
                   );
 
                   if (filtered.length > 0) {

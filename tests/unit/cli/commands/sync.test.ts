@@ -468,6 +468,150 @@ describe('Sync Command Dependencies', () => {
     });
   });
 
+  describe('Multi-production workspace key handling', () => {
+    it('should use workspace key (prod-1, prod-2) not workspace type for multi-production', async () => {
+      const agentDir = path.join(agentsDir, 'test-agent');
+      await fs.mkdir(agentDir, { recursive: true });
+
+      // Create initial production.json with workspace keys
+      const initialArray = [
+        {
+          workspace: 'prod-1',
+          agent_id: 'agent_prod1',
+          llm_id: 'llm_prod1',
+          kb_id: null,
+          last_sync: new Date().toISOString(),
+          config_hash: 'sha256:abc123',
+          retell_version: 0,
+        },
+        {
+          workspace: 'prod-2',
+          agent_id: 'agent_prod2',
+          llm_id: 'llm_prod2',
+          kb_id: null,
+          last_sync: new Date().toISOString(),
+          config_hash: 'sha256:def456',
+          retell_version: 0,
+        },
+      ];
+
+      await fs.writeFile(
+        path.join(agentDir, 'production.json'),
+        JSON.stringify(initialArray, null, 2)
+      );
+
+      // Read and verify workspace keys
+      const result = await MetadataManager.readAllProduction(agentDir);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value).toHaveLength(2);
+        expect(result.value.map((e) => e.workspace)).toEqual(['prod-1', 'prod-2']);
+      }
+    });
+
+    it('should find and update entry by workspace key', async () => {
+      const agentDir = path.join(agentsDir, 'test-agent');
+      await fs.mkdir(agentDir, { recursive: true });
+
+      // Create initial production.json with workspace keys
+      const initialArray = [
+        { workspace: 'prod-1', agent_id: 'agent_old_1' },
+        { workspace: 'prod-2', agent_id: 'agent_old_2' },
+      ];
+
+      await fs.writeFile(
+        path.join(agentDir, 'production.json'),
+        JSON.stringify(initialArray, null, 2)
+      );
+
+      // Find by workspace key (not workspace_id or workspace_name)
+      const content = await fs.readFile(path.join(agentDir, 'production.json'), 'utf-8');
+      const entries = JSON.parse(content);
+
+      const workspaceKey = 'prod-1';
+      const existingIdx = entries.findIndex((e: { workspace: string }) => e.workspace === workspaceKey);
+
+      expect(existingIdx).toBe(0);
+      expect(entries[existingIdx].agent_id).toBe('agent_old_1');
+    });
+
+    it('should read specific workspace entry with MetadataManager.read', async () => {
+      const agentDir = path.join(agentsDir, 'test-agent');
+      await fs.mkdir(agentDir, { recursive: true });
+
+      const productionArray = [
+        {
+          workspace: 'prod-1',
+          agent_id: 'agent_p1',
+          llm_id: 'llm_p1',
+          kb_id: null,
+          last_sync: new Date().toISOString(),
+          config_hash: 'sha256:p1hash',
+          retell_version: 1,
+        },
+        {
+          workspace: 'prod-2',
+          agent_id: 'agent_p2',
+          llm_id: 'llm_p2',
+          kb_id: null,
+          last_sync: new Date().toISOString(),
+          config_hash: 'sha256:p2hash',
+          retell_version: 2,
+        },
+      ];
+
+      await fs.writeFile(
+        path.join(agentDir, 'production.json'),
+        JSON.stringify(productionArray, null, 2)
+      );
+
+      // Read specific workspace entry
+      const result1 = await MetadataManager.read(agentDir, 'prod-1', 'multi-production');
+      expect(result1.success).toBe(true);
+      if (result1.success) {
+        expect(result1.value.agent_id).toBe('agent_p1');
+        expect(result1.value.workspace).toBe('prod-1');
+      }
+
+      const result2 = await MetadataManager.read(agentDir, 'prod-2', 'multi-production');
+      expect(result2.success).toBe(true);
+      if (result2.success) {
+        expect(result2.value.agent_id).toBe('agent_p2');
+        expect(result2.value.workspace).toBe('prod-2');
+      }
+    });
+
+    it('should return empty metadata for non-existent workspace key', async () => {
+      const agentDir = path.join(agentsDir, 'test-agent');
+      await fs.mkdir(agentDir, { recursive: true });
+
+      const productionArray = [
+        {
+          workspace: 'prod-1',
+          agent_id: 'agent_p1',
+          llm_id: 'llm_p1',
+          kb_id: null,
+          last_sync: new Date().toISOString(),
+          config_hash: 'sha256:p1hash',
+          retell_version: 1,
+        },
+      ];
+
+      await fs.writeFile(
+        path.join(agentDir, 'production.json'),
+        JSON.stringify(productionArray, null, 2)
+      );
+
+      // Read non-existent workspace key
+      const result = await MetadataManager.read(agentDir, 'prod-3', 'multi-production');
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value.agent_id).toBeNull();
+        expect(result.value.workspace).toBe('prod-3');
+      }
+    });
+  });
+
   describe('Dry run behavior', () => {
     it('should not modify files in dry run mode', async () => {
       const agentDir = path.join(agentsDir, 'test-agent');

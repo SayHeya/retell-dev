@@ -57,6 +57,10 @@ async function executeDiff(agentName: string, options: DiffOptions): Promise<voi
   const agentPath = path.resolve(options.path, agentName);
   const promptsPath = path.resolve(options.prompts);
 
+  // Get orchestration mode
+  const modeResult = await WorkspaceConfigService.getMode();
+  const mode = modeResult.success ? modeResult.value : 'single-production';
+
   // 1. Load workspace config
   const workspaceConfigResult = await WorkspaceConfigService.getWorkspace(options.workspace);
   if (!workspaceConfigResult.success) {
@@ -74,7 +78,7 @@ async function executeDiff(agentName: string, options: DiffOptions): Promise<voi
   const localConfig = configResult.value;
 
   // 3. Load metadata to get agent_id and stored hash
-  const metadataResult = await MetadataManager.read(agentPath, options.workspace);
+  const metadataResult = await MetadataManager.read(agentPath, options.workspace, mode);
   if (!metadataResult.success) {
     throw new Error(
       `Agent not found in ${options.workspace}. Run 'retell push' first.\n` +

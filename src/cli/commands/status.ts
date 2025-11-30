@@ -5,7 +5,7 @@
 import { Command } from 'commander';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { AgentConfigLoader, MetadataManager, HashCalculator } from '@heya/retell.controllers';
+import { AgentConfigLoader, MetadataManager, HashCalculator, WorkspaceConfigService } from '@heya/retell.controllers';
 import { handleError } from '../errors/cli-error-handler';
 
 export const statusCommand = new Command('status')
@@ -28,15 +28,19 @@ type AgentStatus = {
   name: string;
   localHash: string | null;
   staging: WorkspaceStatus;
-  production: WorkspaceStatus;
+  production: ProductionStatus[];
+  isMultiProduction: boolean;
 };
 
 type WorkspaceStatus = {
+  workspaceKey: string;
   agentId: string | null;
   hash: string | null;
   lastSynced: number | null; // Store as number for display
   inSync: boolean;
 };
+
+type ProductionStatus = WorkspaceStatus;
 
 async function executeStatus(agentName: string | undefined, options: StatusOptions): Promise<void> {
   const agentsDir = path.resolve(options.path);
@@ -85,6 +89,11 @@ async function findAllAgents(agentsDir: string): Promise<string[]> {
 }
 
 async function getAgentStatus(agentPath: string, name: string): Promise<AgentStatus> {
+  // Get orchestration mode
+  const modeResult = await WorkspaceConfigService.getMode();
+  const mode = modeResult.success ? modeResult.value : 'single-production';
+  const isMultiProduction = mode === 'multi-production';
+
   // Load local config and calculate hash
   const configResult = await AgentConfigLoader.load(agentPath);
   let localHash: string | null = null;
@@ -94,7 +103,7 @@ async function getAgentStatus(agentPath: string, name: string): Promise<AgentSta
   }
 
   // Read staging metadata
-  const stagingMetadata = await MetadataManager.read(agentPath, 'staging');
+  const stagingMetadata = await MetadataManager.read(agentPath, 'staging', mode);
   const stagingHash = stagingMetadata.success ? stagingMetadata.value.config_hash : null;
   const stagingInSync =
     localHash !== null && stagingHash !== null
@@ -102,6 +111,7 @@ async function getAgentStatus(agentPath: string, name: string): Promise<AgentSta
       : false;
 
   const staging: WorkspaceStatus = {
+    workspaceKey: 'staging',
     agentId: stagingMetadata.success ? stagingMetadata.value.agent_id : null,
     hash: stagingHash,
     lastSynced:
@@ -112,28 +122,57 @@ async function getAgentStatus(agentPath: string, name: string): Promise<AgentSta
   };
 
   // Read production metadata
-  const productionMetadata = await MetadataManager.read(agentPath, 'production');
-  const productionHash = productionMetadata.success ? productionMetadata.value.config_hash : null;
-  const productionInSync =
-    localHash !== null && productionHash !== null
-      ? HashCalculator.compareHashes(localHash as never, productionHash as never)
-      : false;
+  const production: ProductionStatus[] = [];
 
-  const production: WorkspaceStatus = {
-    agentId: productionMetadata.success ? productionMetadata.value.agent_id : null,
-    hash: productionHash,
-    lastSynced:
-      productionMetadata.success && productionMetadata.value.last_sync !== null
-        ? new Date(productionMetadata.value.last_sync).getTime()
-        : null,
-    inSync: productionInSync,
-  };
+  if (isMultiProduction) {
+    // Multi-production: read all entries from production.json
+    const allProdResult = await MetadataManager.readAllProduction(agentPath);
+    if (allProdResult.success && allProdResult.value.length > 0) {
+      for (const entry of allProdResult.value) {
+        const prodHash = entry.config_hash;
+        const prodInSync =
+          localHash !== null && prodHash !== null
+            ? HashCalculator.compareHashes(localHash as never, prodHash as never)
+            : false;
+
+        production.push({
+          workspaceKey: entry.workspace,
+          agentId: entry.agent_id,
+          hash: prodHash,
+          lastSynced: entry.last_sync !== null ? new Date(entry.last_sync).getTime() : null,
+          inSync: prodInSync,
+        });
+      }
+    }
+  } else {
+    // Single-production: read single entry
+    const productionMetadata = await MetadataManager.read(agentPath, 'production', mode);
+    const productionHash = productionMetadata.success ? productionMetadata.value.config_hash : null;
+    const productionInSync =
+      localHash !== null && productionHash !== null
+        ? HashCalculator.compareHashes(localHash as never, productionHash as never)
+        : false;
+
+    if (productionMetadata.success && productionMetadata.value.agent_id !== null) {
+      production.push({
+        workspaceKey: 'production',
+        agentId: productionMetadata.value.agent_id,
+        hash: productionHash,
+        lastSynced:
+          productionMetadata.value.last_sync !== null
+            ? new Date(productionMetadata.value.last_sync).getTime()
+            : null,
+        inSync: productionInSync,
+      });
+    }
+  }
 
   return {
     name,
     localHash,
     staging,
     production,
+    isMultiProduction,
   };
 }
 
@@ -159,15 +198,28 @@ function displayStatus(statuses: AgentStatus[]): void {
     }
 
     console.log(`  Production:`);
-    if (status.production.agentId !== null) {
-      console.log(`    ID: ${status.production.agentId}`);
-      const prodHashDisplay =
-        status.production.hash !== null
-          ? status.production.hash.substring(0, 12) + '...'
-          : 'unknown';
-      console.log(`    Hash: ${prodHashDisplay}`);
-      console.log(`    Last Synced: ${formatTimestamp(status.production.lastSynced)}`);
-      console.log(`    Status: ${status.production.inSync ? '✓ IN SYNC' : '✗ OUT OF SYNC'}`);
+    if (status.production.length > 0) {
+      if (status.isMultiProduction) {
+        // Multi-production: show each workspace
+        for (const prod of status.production) {
+          console.log(`    [${prod.workspaceKey}]`);
+          console.log(`      ID: ${prod.agentId}`);
+          const prodHashDisplay =
+            prod.hash !== null ? prod.hash.substring(0, 12) + '...' : 'unknown';
+          console.log(`      Hash: ${prodHashDisplay}`);
+          console.log(`      Last Synced: ${formatTimestamp(prod.lastSynced)}`);
+          console.log(`      Status: ${prod.inSync ? '✓ IN SYNC' : '✗ OUT OF SYNC'}`);
+        }
+      } else {
+        // Single-production: show single entry
+        const prod = status.production[0]!;
+        console.log(`    ID: ${prod.agentId}`);
+        const prodHashDisplay =
+          prod.hash !== null ? prod.hash.substring(0, 12) + '...' : 'unknown';
+        console.log(`    Hash: ${prodHashDisplay}`);
+        console.log(`    Last Synced: ${formatTimestamp(prod.lastSynced)}`);
+        console.log(`    Status: ${prod.inSync ? '✓ IN SYNC' : '✗ OUT OF SYNC'}`);
+      }
     } else {
       console.log(`    Status: NOT SYNCED`);
     }
